@@ -1,0 +1,50 @@
+basePath: /
+definitions:
+  auth.RegisterRequest:
+    properties:
+      email:
+        type: string
+      password:
+        minLength: 6
+        type: string
+    required:
+    - email
+    - password
+    type: object
+host: localhost:8080
+info:
+  contact: {}
+  description: API платформы Beauty Sarafan
+  title: Beauty Sarafan API
+  version: "1.0"
+paths:
+  /auth/register:
+    post:
+      consumes:
+      - application/json
+      description: Создаёт пользователя с ролью master
+      parameters:
+      - description: Данные регистрации
+        in: body
+        name: data
+        required: true
+        schema:
+          $ref: '#/definitions/auth.RegisterRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Регистрация мастера
+      tags:
+      - auth
+swagger: "2.0"
