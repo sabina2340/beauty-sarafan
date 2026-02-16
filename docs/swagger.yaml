@@ -1,146 +1,152 @@
-basePath: /
-definitions:
-  auth.LoginRequest:
-    properties:
-      email:
-        type: string
-      password:
-        minLength: 6
-        type: string
-    required:
-    - email
-    - password
-    type: object
-  auth.MeResponse:
-    properties:
-      email:
-        type: string
-      role:
-        type: string
-      user_id:
-        type: integer
-    type: object
-  auth.RegisterRequest:
-    properties:
-      email:
-        type: string
-      password:
-        minLength: 6
-        type: string
-    required:
-    - email
-    - password
-    type: object
-  auth.TokenResponse:
-    properties:
-      access_token:
-        type: string
-      expires_in:
-        type: integer
-      token_type:
-        type: string
-    type: object
-host: localhost:8080
+swagger: "2.0"
 info:
-  contact: {}
   description: API платформы Beauty Sarafan
   title: Beauty Sarafan API
+  contact: {}
   version: "1.0"
+host: localhost:8080
+basePath: /
+securityDefinitions:
+  BearerAuth:
+    type: apiKey
+    name: Authorization
+    in: header
+    description: 'Bearer <token> (для Swagger), обычно используется cookie access_token'
 paths:
+
+  /admin/users/{id}/moderate:
+    patch:
+      tags: [admin]
+      summary: Модерация пользователя
+      description: Обновляет роль и статус пользователя (admin/moderator)
+      consumes: [application/json]
+      produces: [application/json]
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          type: integer
+          description: User ID
+        - name: data
+          in: body
+          required: true
+          schema:
+            $ref: '#/definitions/admin.ModerateUserRequest'
+      responses:
+        "200": {description: OK, schema: {type: object, additionalProperties: true}}
+        "400": {description: Bad Request, schema: {type: object, additionalProperties: {type: string}}}
+        "404": {description: Not Found, schema: {type: object, additionalProperties: {type: string}}}
+  /auth/register:
+    post:
+      tags: [auth]
+      summary: Регистрация пользователя
+      description: Создаёт пользователя с ролью user и статусом pending
+      consumes: [application/json]
+      produces: [application/json]
+      parameters:
+        - name: data
+          in: body
+          required: true
+          schema:
+            $ref: '#/definitions/auth.RegisterRequest'
+      responses:
+        "201": {description: Created, schema: {type: object, additionalProperties: true}}
+        "400": {description: Bad Request, schema: {type: object, additionalProperties: {type: string}}}
+        "500": {description: Internal Server Error, schema: {type: object, additionalProperties: {type: string}}}
   /auth/login:
     post:
-      consumes:
-      - application/json
-      description: Выполняет вход и возвращает JWT access token
-      parameters:
-      - description: Данные логина
-        in: body
-        name: data
-        required: true
-        schema:
-          $ref: '#/definitions/auth.LoginRequest'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/auth.TokenResponse'
-        "400":
-          description: Bad Request
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-        "401":
-          description: Unauthorized
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-        "500":
-          description: Internal Server Error
-          schema:
-            additionalProperties:
-              type: string
-            type: object
+      tags: [auth]
       summary: Логин пользователя
-      tags:
-      - auth
+      description: Выполняет вход и кладёт JWT в HttpOnly cookie access_token
+      consumes: [application/json]
+      produces: [application/json]
+      parameters:
+        - name: data
+          in: body
+          required: true
+          schema:
+            $ref: '#/definitions/auth.LoginRequest'
+      responses:
+        "200": {description: OK, schema: {type: object, additionalProperties: true}}
+        "400": {description: Bad Request, schema: {type: object, additionalProperties: {type: string}}}
+        "401": {description: Unauthorized, schema: {type: object, additionalProperties: {type: string}}}
+        "500": {description: Internal Server Error, schema: {type: object, additionalProperties: {type: string}}}
   /auth/me:
     get:
-      description: Возвращает данные пользователя из JWT токена
-      produces:
-      - application/json
+      tags: [auth]
+      summary: Проверка авторизации
+      description: Возвращает user_id и role из JWT
+      produces: [application/json]
       responses:
         "200":
           description: OK
           schema:
             $ref: '#/definitions/auth.MeResponse'
-        "401":
-          description: Unauthorized
-          schema:
-            additionalProperties:
-              type: string
-            type: object
+        "401": {description: Unauthorized, schema: {type: object, additionalProperties: {type: string}}}
+  /admin/ping:
+    get:
+      tags: [admin]
+      summary: Проверка admin/moderator доступа
+      produces: [application/json]
       security:
-      - BearerAuth: []
-      summary: Проверка авторизации
-      tags:
-      - auth
-  /auth/register:
-    post:
-      consumes:
-      - application/json
-      description: Создаёт пользователя с ролью master
-      parameters:
-      - description: Данные регистрации
-        in: body
-        name: data
-        required: true
-        schema:
-          $ref: '#/definitions/auth.RegisterRequest'
-      produces:
-      - application/json
+        - BearerAuth: []
       responses:
-        "201":
-          description: Created
-          schema:
-            additionalProperties: true
-            type: object
-        "400":
-          description: Bad Request
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-      summary: Регистрация мастера
-      tags:
-      - auth
-securityDefinitions:
-  BearerAuth:
-    description: 'Введите JWT в формате: Bearer <token>'
-    in: header
-    name: Authorization
-    type: apiKey
-swagger: "2.0"
+        "200": {description: OK, schema: {type: object, additionalProperties: {type: string}}}
+        "401": {description: Unauthorized, schema: {type: object, additionalProperties: {type: string}}}
+        "403": {description: Forbidden, schema: {type: object, additionalProperties: {type: string}}}
+  /ads:
+    post:
+      tags: [ads]
+      summary: Тест создания объявления
+      description: Доступно только user со статусом approved
+      produces: [application/json]
+      security:
+        - BearerAuth: []
+      responses:
+        "200": {description: OK, schema: {type: object, additionalProperties: {type: string}}}
+        "401": {description: Unauthorized, schema: {type: object, additionalProperties: {type: string}}}
+        "403": {description: Forbidden, schema: {type: object, additionalProperties: {type: string}}}
+definitions:
+  auth.RegisterRequest:
+    type: object
+    required: [login, password]
+    properties:
+      login:
+        type: string
+        minLength: 3
+        maxLength: 64
+      password:
+        type: string
+        minLength: 6
+  auth.LoginRequest:
+    type: object
+    required: [login, password]
+    properties:
+      login:
+        type: string
+        minLength: 3
+        maxLength: 64
+      password:
+        type: string
+        minLength: 6
+  auth.MeResponse:
+    type: object
+    properties:
+      user_id:
+        type: integer
+      login:
+        type: string
+      role:
+        type: string
+  admin.ModerateUserRequest:
+    type: object
+    required: [role, status]
+    properties:
+      role:
+        type: string
+        enum: [admin, moderator, user]
+      status:
+        type: string
+        enum: [approved, rejected, pending]

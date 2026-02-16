@@ -16,7 +16,7 @@ import (
 // @securityDefinitions.apikey BearerAuth
 // @in header
 // @name Authorization
-// @description Введите JWT в формате: Bearer <token>
+// @description Bearer <token> для Swagger (основной способ в API — cookie access_token)
 func main() {
 	db := database.InitDB()
 

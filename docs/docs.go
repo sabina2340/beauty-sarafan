@@ -14,62 +14,300 @@ const docTemplate = `{
   "host": "{{.Host}}",
   "basePath": "{{.BasePath}}",
   "paths": {
-    "/auth/login": {
+    "/auth/register": {
       "post": {
-        "description": "Выполняет вход и возвращает JWT access token",
-        "consumes": ["application/json"],
-        "produces": ["application/json"],
-        "tags": ["auth"],
-        "summary": "Логин пользователя",
+        "tags": [
+          "auth"
+        ],
+        "summary": "Регистрация пользователя",
+        "description": "Создаёт пользователя с ролью user и статусом pending",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
         "parameters": [
           {
-            "description": "Данные логина",
             "name": "data",
             "in": "body",
             "required": true,
-            "schema": {"$ref": "#/definitions/auth.LoginRequest"}
+            "schema": {
+              "$ref": "#/definitions/auth.RegisterRequest"
+            }
           }
         ],
         "responses": {
-          "200": {"description": "OK", "schema": {"$ref": "#/definitions/auth.TokenResponse"}},
-          "400": {"description": "Bad Request", "schema": {"type": "object", "additionalProperties": {"type": "string"}}},
-          "401": {"description": "Unauthorized", "schema": {"type": "object", "additionalProperties": {"type": "string"}}},
-          "500": {"description": "Internal Server Error", "schema": {"type": "object", "additionalProperties": {"type": "string"}}}
+          "201": {
+            "description": "Created",
+            "schema": {
+              "type": "object",
+              "additionalProperties": true
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "schema": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "string"
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "schema": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/login": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Логин пользователя",
+        "description": "Выполняет вход и кладёт JWT в HttpOnly cookie access_token",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "name": "data",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/auth.LoginRequest"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "type": "object",
+              "additionalProperties": true
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "schema": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "string"
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "schema": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "string"
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "schema": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "string"
+              }
+            }
+          }
         }
       }
     },
     "/auth/me": {
       "get": {
-        "description": "Возвращает данные пользователя из JWT токена",
-        "produces": ["application/json"],
-        "tags": ["auth"],
+        "tags": [
+          "auth"
+        ],
         "summary": "Проверка авторизации",
-        "security": [{"BearerAuth": []}],
+        "description": "Возвращает user_id и role из JWT",
+        "produces": [
+          "application/json"
+        ],
         "responses": {
-          "200": {"description": "OK", "schema": {"$ref": "#/definitions/auth.MeResponse"}},
-          "401": {"description": "Unauthorized", "schema": {"type": "object", "additionalProperties": {"type": "string"}}}
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/auth.MeResponse"
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "schema": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "string"
+              }
+            }
+          }
         }
       }
     },
-    "/auth/register": {
-      "post": {
-        "description": "Создаёт пользователя с ролью master",
-        "consumes": ["application/json"],
-        "produces": ["application/json"],
-        "tags": ["auth"],
-        "summary": "Регистрация мастера",
-        "parameters": [
+    "/admin/ping": {
+      "get": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Проверка admin/moderator доступа",
+        "produces": [
+          "application/json"
+        ],
+        "security": [
           {
-            "description": "Данные регистрации",
-            "name": "data",
-            "in": "body",
-            "required": true,
-            "schema": {"$ref": "#/definitions/auth.RegisterRequest"}
+            "BearerAuth": []
           }
         ],
         "responses": {
-          "201": {"description": "Created", "schema": {"type": "object", "additionalProperties": true}},
-          "400": {"description": "Bad Request", "schema": {"type": "object", "additionalProperties": {"type": "string"}}}
+          "200": {
+            "description": "OK",
+            "schema": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "string"
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "schema": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "string"
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "schema": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/ads": {
+      "post": {
+        "tags": [
+          "ads"
+        ],
+        "summary": "Тест создания объявления",
+        "description": "Доступно только user со статусом approved",
+        "produces": [
+          "application/json"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "string"
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "schema": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "string"
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "schema": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/users/{id}/moderate": {
+      "patch": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Модерация пользователя",
+        "description": "Обновляет роль и статус пользователя (admin/moderator)",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "type": "integer",
+            "description": "User ID"
+          },
+          {
+            "name": "data",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/admin.ModerateUserRequest"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "type": "object",
+              "additionalProperties": true
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "schema": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "string"
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "schema": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "string"
+              }
+            }
+          }
         }
       }
     }
@@ -79,40 +317,83 @@ const docTemplate = `{
       "type": "apiKey",
       "name": "Authorization",
       "in": "header",
-      "description": "Введите JWT в формате: Bearer <token>"
+      "description": "Bearer <token> (для Swagger), обычно используется cookie access_token"
     }
   },
   "definitions": {
+    "auth.RegisterRequest": {
+      "type": "object",
+      "required": [
+        "login",
+        "password"
+      ],
+      "properties": {
+        "login": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 64
+        },
+        "password": {
+          "type": "string",
+          "minLength": 6
+        }
+      }
+    },
     "auth.LoginRequest": {
       "type": "object",
-      "required": ["email", "password"],
+      "required": [
+        "login",
+        "password"
+      ],
       "properties": {
-        "email": {"type": "string"},
-        "password": {"type": "string", "minLength": 6}
+        "login": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 64
+        },
+        "password": {
+          "type": "string",
+          "minLength": 6
+        }
       }
     },
     "auth.MeResponse": {
       "type": "object",
       "properties": {
-        "email": {"type": "string"},
-        "role": {"type": "string"},
-        "user_id": {"type": "integer"}
+        "user_id": {
+          "type": "integer"
+        },
+        "login": {
+          "type": "string"
+        },
+        "role": {
+          "type": "string"
+        }
       }
     },
-    "auth.RegisterRequest": {
+    "admin.ModerateUserRequest": {
       "type": "object",
-      "required": ["email", "password"],
+      "required": [
+        "role",
+        "status"
+      ],
       "properties": {
-        "email": {"type": "string"},
-        "password": {"type": "string", "minLength": 6}
-      }
-    },
-    "auth.TokenResponse": {
-      "type": "object",
-      "properties": {
-        "access_token": {"type": "string"},
-        "expires_in": {"type": "integer"},
-        "token_type": {"type": "string"}
+        "role": {
+          "type": "string",
+          "enum": [
+            "admin",
+            "moderator",
+            "user"
+          ]
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "approved",
+            "rejected",
+            "pending"
+          ]
+        }
       }
     }
   }

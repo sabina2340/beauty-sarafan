@@ -11,44 +11,37 @@ import (
 )
 
 type LoginRequest struct {
-	Email    string `json:"email" binding:"required,email"`
+	Login    string `json:"login" binding:"required,min=3,max=64"`
 	Password string `json:"password" binding:"required,min=6"`
-}
-
-type TokenResponse struct {
-	AccessToken string `json:"access_token"`
-	TokenType   string `json:"token_type"`
-	ExpiresIn   int64  `json:"expires_in"`
 }
 
 // Login godoc
 // @Summary Логин пользователя
-// @Description Выполняет вход и возвращает JWT access token
+// @Description Выполняет вход и кладёт JWT в HttpOnly cookie access_token
 // @Tags auth
 // @Accept json
 // @Produce json
 // @Param data body LoginRequest true "Данные логина"
-// @Success 200 {object} TokenResponse
+// @Success 200 {object} map[string]interface{}
 // @Failure 400 {object} map[string]string
 // @Failure 401 {object} map[string]string
 // @Failure 500 {object} map[string]string
 // @Router /auth/login [post]
 func Login(c *gin.Context) {
 	var req LoginRequest
-
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request data"})
 		return
 	}
 
 	var user models.User
-	if err := database.DB.Where("email = ?", req.Email).First(&user).Error; err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid email or password"})
+	if err := database.DB.Where("login = ?", req.Login).First(&user).Error; err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid login or password"})
 		return
 	}
 
-	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(req.Password)); err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid email or password"})
+	if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(req.Password)); err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid login or password"})
 		return
 	}
 
@@ -58,9 +51,12 @@ func Login(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, TokenResponse{
-		AccessToken: token,
-		TokenType:   "Bearer",
-		ExpiresIn:   expiresIn,
+	maxAge := int(expiresIn)
+	c.SetCookie("access_token", token, maxAge, "/", "", false, true)
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "ok",
+		"role":    user.Role,
+		"status":  user.Status,
 	})
 }
