@@ -4,80 +4,118 @@ package docs
 import "github.com/swaggo/swag"
 
 const docTemplate = `{
-    "schemes": {{ marshal .Schemes }},
-    "swagger": "2.0",
-    "info": {
-        "description": "{{escape .Description}}",
-        "title": "{{.Title}}",
-        "contact": {},
-        "version": "{{.Version}}"
-    },
-    "host": "{{.Host}}",
-    "basePath": "{{.BasePath}}",
-    "paths": {
-        "/auth/register": {
-            "post": {
-                "description": "Создаёт пользователя с ролью master",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "auth"
-                ],
-                "summary": "Регистрация мастера",
-                "parameters": [
-                    {
-                        "description": "Данные регистрации",
-                        "name": "data",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/auth.RegisterRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "201": {
-                        "description": "Created",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    }
-                }
-            }
+  "swagger": "2.0",
+  "info": {
+    "description": "{{escape .Description}}",
+    "title": "{{.Title}}",
+    "contact": {},
+    "version": "{{.Version}}"
+  },
+  "host": "{{.Host}}",
+  "basePath": "{{.BasePath}}",
+  "paths": {
+    "/auth/login": {
+      "post": {
+        "description": "Выполняет вход и возвращает JWT access token",
+        "consumes": ["application/json"],
+        "produces": ["application/json"],
+        "tags": ["auth"],
+        "summary": "Логин пользователя",
+        "parameters": [
+          {
+            "description": "Данные логина",
+            "name": "data",
+            "in": "body",
+            "required": true,
+            "schema": {"$ref": "#/definitions/auth.LoginRequest"}
+          }
+        ],
+        "responses": {
+          "200": {"description": "OK", "schema": {"$ref": "#/definitions/auth.TokenResponse"}},
+          "400": {"description": "Bad Request", "schema": {"type": "object", "additionalProperties": {"type": "string"}}},
+          "401": {"description": "Unauthorized", "schema": {"type": "object", "additionalProperties": {"type": "string"}}},
+          "500": {"description": "Internal Server Error", "schema": {"type": "object", "additionalProperties": {"type": "string"}}}
         }
+      }
     },
-    "definitions": {
-        "auth.RegisterRequest": {
-            "type": "object",
-            "required": [
-                "email",
-                "password"
-            ],
-            "properties": {
-                "email": {
-                    "type": "string"
-                },
-                "password": {
-                    "type": "string",
-                    "minLength": 6
-                }
-            }
+    "/auth/me": {
+      "get": {
+        "description": "Возвращает данные пользователя из JWT токена",
+        "produces": ["application/json"],
+        "tags": ["auth"],
+        "summary": "Проверка авторизации",
+        "security": [{"BearerAuth": []}],
+        "responses": {
+          "200": {"description": "OK", "schema": {"$ref": "#/definitions/auth.MeResponse"}},
+          "401": {"description": "Unauthorized", "schema": {"type": "object", "additionalProperties": {"type": "string"}}}
         }
+      }
+    },
+    "/auth/register": {
+      "post": {
+        "description": "Создаёт пользователя с ролью master",
+        "consumes": ["application/json"],
+        "produces": ["application/json"],
+        "tags": ["auth"],
+        "summary": "Регистрация мастера",
+        "parameters": [
+          {
+            "description": "Данные регистрации",
+            "name": "data",
+            "in": "body",
+            "required": true,
+            "schema": {"$ref": "#/definitions/auth.RegisterRequest"}
+          }
+        ],
+        "responses": {
+          "201": {"description": "Created", "schema": {"type": "object", "additionalProperties": true}},
+          "400": {"description": "Bad Request", "schema": {"type": "object", "additionalProperties": {"type": "string"}}}
+        }
+      }
     }
+  },
+  "securityDefinitions": {
+    "BearerAuth": {
+      "type": "apiKey",
+      "name": "Authorization",
+      "in": "header",
+      "description": "Введите JWT в формате: Bearer <token>"
+    }
+  },
+  "definitions": {
+    "auth.LoginRequest": {
+      "type": "object",
+      "required": ["email", "password"],
+      "properties": {
+        "email": {"type": "string"},
+        "password": {"type": "string", "minLength": 6}
+      }
+    },
+    "auth.MeResponse": {
+      "type": "object",
+      "properties": {
+        "email": {"type": "string"},
+        "role": {"type": "string"},
+        "user_id": {"type": "integer"}
+      }
+    },
+    "auth.RegisterRequest": {
+      "type": "object",
+      "required": ["email", "password"],
+      "properties": {
+        "email": {"type": "string"},
+        "password": {"type": "string", "minLength": 6}
+      }
+    },
+    "auth.TokenResponse": {
+      "type": "object",
+      "properties": {
+        "access_token": {"type": "string"},
+        "expires_in": {"type": "integer"},
+        "token_type": {"type": "string"}
+      }
+    }
+  }
 }`
 
 // SwaggerInfo holds exported Swagger Info so clients can modify it

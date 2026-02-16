@@ -13,6 +13,10 @@ import (
 // @description API платформы Beauty Sarafan
 // @host localhost:8080
 // @BasePath /
+// @securityDefinitions.apikey BearerAuth
+// @in header
+// @name Authorization
+// @description Введите JWT в формате: Bearer <token>
 func main() {
 	db := database.InitDB()
 
