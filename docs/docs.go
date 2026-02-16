@@ -13,6 +13,14 @@ const docTemplate = `{
   },
   "host": "{{.Host}}",
   "basePath": "{{.BasePath}}",
+  "securityDefinitions": {
+    "BearerAuth": {
+      "type": "apiKey",
+      "name": "Authorization",
+      "in": "header",
+      "description": "Bearer <token> (Swagger) или HttpOnly cookie access_token"
+    }
+  },
   "paths": {
     "/auth/register": {
       "post": {
@@ -72,7 +80,7 @@ const docTemplate = `{
           "auth"
         ],
         "summary": "Логин пользователя",
-        "description": "Выполняет вход и кладёт JWT в HttpOnly cookie access_token",
+        "description": "Кладёт JWT в HttpOnly cookie access_token",
         "consumes": [
           "application/json"
         ],
@@ -114,15 +122,6 @@ const docTemplate = `{
                 "type": "string"
               }
             }
-          },
-          "500": {
-            "description": "Internal Server Error",
-            "schema": {
-              "type": "object",
-              "additionalProperties": {
-                "type": "string"
-              }
-            }
           }
         }
       }
@@ -133,7 +132,6 @@ const docTemplate = `{
           "auth"
         ],
         "summary": "Проверка авторизации",
-        "description": "Возвращает user_id и role из JWT",
         "produces": [
           "application/json"
         ],
@@ -156,41 +154,73 @@ const docTemplate = `{
         }
       }
     },
-    "/admin/ping": {
+    "/me/profile": {
       "get": {
         "tags": [
-          "admin"
+          "me"
         ],
-        "summary": "Проверка admin/moderator доступа",
-        "produces": [
-          "application/json"
-        ],
+        "summary": "Профиль текущего пользователя",
         "security": [
           {
             "BearerAuth": []
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/models.MasterProfile"
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "schema": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "me"
+        ],
+        "summary": "Создание/обновление профиля мастера",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "name": "data",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/me.ProfileUpsertRequest"
+            }
           }
         ],
         "responses": {
           "200": {
             "description": "OK",
             "schema": {
-              "type": "object",
-              "additionalProperties": {
-                "type": "string"
-              }
+              "$ref": "#/definitions/models.MasterProfile"
             }
           },
-          "401": {
-            "description": "Unauthorized",
-            "schema": {
-              "type": "object",
-              "additionalProperties": {
-                "type": "string"
-              }
-            }
-          },
-          "403": {
-            "description": "Forbidden",
+          "400": {
+            "description": "Bad Request",
             "schema": {
               "type": "object",
               "additionalProperties": {
@@ -201,20 +231,121 @@ const docTemplate = `{
         }
       }
     },
-    "/ads": {
-      "post": {
+    "/categories": {
+      "get": {
         "tags": [
-          "ads"
+          "categories"
         ],
-        "summary": "Тест создания объявления",
-        "description": "Доступно только user со статусом approved",
+        "summary": "Список категорий",
         "produces": [
           "application/json"
         ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/models.Category"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/masters": {
+      "get": {
+        "tags": [
+          "masters"
+        ],
+        "summary": "Публичный каталог мастеров",
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "name": "category_id",
+            "in": "query",
+            "type": "integer"
+          },
+          {
+            "name": "slug",
+            "in": "query",
+            "type": "string"
+          },
+          {
+            "name": "city",
+            "in": "query",
+            "type": "string"
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/public.MasterCard"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/masters/{id}": {
+      "get": {
+        "tags": [
+          "masters"
+        ],
+        "summary": "Детальная карточка мастера",
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "type": "integer"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/public.MasterCard"
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "schema": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/ping": {
+      "get": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Проверка admin/moderator доступа",
         "security": [
           {
             "BearerAuth": []
           }
+        ],
+        "produces": [
+          "application/json"
         ],
         "responses": {
           "200": {
@@ -225,22 +356,39 @@ const docTemplate = `{
                 "type": "string"
               }
             }
-          },
-          "401": {
-            "description": "Unauthorized",
+          }
+        }
+      }
+    },
+    "/admin/masters": {
+      "get": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Список мастеров для модерации",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "type": "string",
+            "default": "pending"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
             "schema": {
-              "type": "object",
-              "additionalProperties": {
-                "type": "string"
-              }
-            }
-          },
-          "403": {
-            "description": "Forbidden",
-            "schema": {
-              "type": "object",
-              "additionalProperties": {
-                "type": "string"
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/admin.MasterModerationItem"
               }
             }
           }
@@ -253,25 +401,23 @@ const docTemplate = `{
           "admin"
         ],
         "summary": "Модерация пользователя",
-        "description": "Обновляет роль и статус пользователя (admin/moderator)",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
         "consumes": [
           "application/json"
         ],
         "produces": [
           "application/json"
         ],
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ],
         "parameters": [
           {
             "name": "id",
             "in": "path",
             "required": true,
-            "type": "integer",
-            "description": "User ID"
+            "type": "integer"
           },
           {
             "name": "data",
@@ -289,18 +435,142 @@ const docTemplate = `{
               "type": "object",
               "additionalProperties": true
             }
-          },
-          "400": {
-            "description": "Bad Request",
+          }
+        }
+      }
+    },
+    "/admin/users/{id}/approve": {
+      "patch": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Одобрить пользователя",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "type": "integer"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
             "schema": {
               "type": "object",
-              "additionalProperties": {
-                "type": "string"
-              }
+              "additionalProperties": true
             }
+          }
+        }
+      }
+    },
+    "/admin/users/{id}/reject": {
+      "patch": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Отклонить пользователя",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "type": "integer"
           },
-          "404": {
-            "description": "Not Found",
+          {
+            "name": "data",
+            "in": "body",
+            "required": false,
+            "schema": {
+              "$ref": "#/definitions/admin.RejectUserRequest"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "type": "object",
+              "additionalProperties": true
+            }
+          }
+        }
+      }
+    },
+    "/admin/categories": {
+      "post": {
+        "tags": [
+          "categories"
+        ],
+        "summary": "Создать категорию",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "name": "data",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/categories.CreateCategoryRequest"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Created",
+            "schema": {
+              "$ref": "#/definitions/models.Category"
+            }
+          }
+        }
+      }
+    },
+    "/ads": {
+      "post": {
+        "tags": [
+          "ads"
+        ],
+        "summary": "Тест создания объявления",
+        "description": "Только user со статусом approved",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
             "schema": {
               "type": "object",
               "additionalProperties": {
@@ -312,14 +582,6 @@ const docTemplate = `{
       }
     }
   },
-  "securityDefinitions": {
-    "BearerAuth": {
-      "type": "apiKey",
-      "name": "Authorization",
-      "in": "header",
-      "description": "Bearer <token> (для Swagger), обычно используется cookie access_token"
-    }
-  },
   "definitions": {
     "auth.RegisterRequest": {
       "type": "object",
@@ -329,13 +591,10 @@ const docTemplate = `{
       ],
       "properties": {
         "login": {
-          "type": "string",
-          "minLength": 3,
-          "maxLength": 64
+          "type": "string"
         },
         "password": {
-          "type": "string",
-          "minLength": 6
+          "type": "string"
         }
       }
     },
@@ -347,13 +606,10 @@ const docTemplate = `{
       ],
       "properties": {
         "login": {
-          "type": "string",
-          "minLength": 3,
-          "maxLength": 64
+          "type": "string"
         },
         "password": {
-          "type": "string",
-          "minLength": 6
+          "type": "string"
         }
       }
     },
@@ -367,6 +623,175 @@ const docTemplate = `{
           "type": "string"
         },
         "role": {
+          "type": "string"
+        }
+      }
+    },
+    "me.ProfileUpsertRequest": {
+      "type": "object",
+      "required": [
+        "category_id"
+      ],
+      "properties": {
+        "category_id": {
+          "type": "integer"
+        },
+        "full_name": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "services": {
+          "type": "string"
+        },
+        "phone": {
+          "type": "string"
+        },
+        "city": {
+          "type": "string"
+        },
+        "social_links": {
+          "type": "string"
+        }
+      }
+    },
+    "models.MasterProfile": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "integer"
+        },
+        "user_id": {
+          "type": "integer"
+        },
+        "category_id": {
+          "type": "integer"
+        },
+        "full_name": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "services": {
+          "type": "string"
+        },
+        "phone": {
+          "type": "string"
+        },
+        "city": {
+          "type": "string"
+        },
+        "social_links": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        }
+      }
+    },
+    "models.Category": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "integer"
+        },
+        "name": {
+          "type": "string"
+        },
+        "slug": {
+          "type": "string"
+        }
+      }
+    },
+    "categories.CreateCategoryRequest": {
+      "type": "object",
+      "required": [
+        "name",
+        "slug"
+      ],
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "slug": {
+          "type": "string"
+        }
+      }
+    },
+    "public.MasterCard": {
+      "type": "object",
+      "properties": {
+        "user_id": {
+          "type": "integer"
+        },
+        "login": {
+          "type": "string"
+        },
+        "full_name": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "services": {
+          "type": "string"
+        },
+        "phone": {
+          "type": "string"
+        },
+        "city": {
+          "type": "string"
+        },
+        "social_links": {
+          "type": "string"
+        },
+        "category_id": {
+          "type": "integer"
+        },
+        "category_name": {
+          "type": "string"
+        },
+        "category_slug": {
+          "type": "string"
+        }
+      }
+    },
+    "admin.MasterModerationItem": {
+      "type": "object",
+      "properties": {
+        "user_id": {
+          "type": "integer"
+        },
+        "login": {
+          "type": "string"
+        },
+        "role": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "rejection_reason": {
+          "type": "string"
+        },
+        "profile_id": {
+          "type": "integer"
+        },
+        "full_name": {
+          "type": "string"
+        },
+        "city": {
+          "type": "string"
+        },
+        "category_id": {
+          "type": "integer"
+        },
+        "category_name": {
+          "type": "string"
+        },
+        "category_slug": {
           "type": "string"
         }
       }
@@ -390,16 +815,23 @@ const docTemplate = `{
           "type": "string",
           "enum": [
             "approved",
-            "rejected",
-            "pending"
+            "pending",
+            "rejected"
           ]
+        }
+      }
+    },
+    "admin.RejectUserRequest": {
+      "type": "object",
+      "properties": {
+        "reason": {
+          "type": "string"
         }
       }
     }
   }
 }`
 
-// SwaggerInfo holds exported Swagger Info so clients can modify it
 var SwaggerInfo = &swag.Spec{
 	Version:          "1.0",
 	Host:             "localhost:8080",

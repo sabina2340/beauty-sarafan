@@ -11,142 +11,65 @@ securityDefinitions:
     type: apiKey
     name: Authorization
     in: header
-    description: 'Bearer <token> (для Swagger), обычно используется cookie access_token'
+    description: Bearer <token> (Swagger) или HttpOnly cookie access_token
 paths:
-
-  /admin/users/{id}/moderate:
-    patch:
-      tags: [admin]
-      summary: Модерация пользователя
-      description: Обновляет роль и статус пользователя (admin/moderator)
-      consumes: [application/json]
-      produces: [application/json]
-      security:
-        - BearerAuth: []
-      parameters:
-        - name: id
-          in: path
-          required: true
-          type: integer
-          description: User ID
-        - name: data
-          in: body
-          required: true
-          schema:
-            $ref: '#/definitions/admin.ModerateUserRequest'
-      responses:
-        "200": {description: OK, schema: {type: object, additionalProperties: true}}
-        "400": {description: Bad Request, schema: {type: object, additionalProperties: {type: string}}}
-        "404": {description: Not Found, schema: {type: object, additionalProperties: {type: string}}}
   /auth/register:
     post:
       tags: [auth]
       summary: Регистрация пользователя
-      description: Создаёт пользователя с ролью user и статусом pending
-      consumes: [application/json]
-      produces: [application/json]
-      parameters:
-        - name: data
-          in: body
-          required: true
-          schema:
-            $ref: '#/definitions/auth.RegisterRequest'
-      responses:
-        "201": {description: Created, schema: {type: object, additionalProperties: true}}
-        "400": {description: Bad Request, schema: {type: object, additionalProperties: {type: string}}}
-        "500": {description: Internal Server Error, schema: {type: object, additionalProperties: {type: string}}}
   /auth/login:
     post:
       tags: [auth]
       summary: Логин пользователя
-      description: Выполняет вход и кладёт JWT в HttpOnly cookie access_token
-      consumes: [application/json]
-      produces: [application/json]
-      parameters:
-        - name: data
-          in: body
-          required: true
-          schema:
-            $ref: '#/definitions/auth.LoginRequest'
-      responses:
-        "200": {description: OK, schema: {type: object, additionalProperties: true}}
-        "400": {description: Bad Request, schema: {type: object, additionalProperties: {type: string}}}
-        "401": {description: Unauthorized, schema: {type: object, additionalProperties: {type: string}}}
-        "500": {description: Internal Server Error, schema: {type: object, additionalProperties: {type: string}}}
   /auth/me:
     get:
       tags: [auth]
       summary: Проверка авторизации
-      description: Возвращает user_id и role из JWT
-      produces: [application/json]
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/auth.MeResponse'
-        "401": {description: Unauthorized, schema: {type: object, additionalProperties: {type: string}}}
+  /me/profile:
+    get:
+      tags: [me]
+      summary: Профиль текущего пользователя
+    put:
+      tags: [me]
+      summary: Создание/обновление профиля мастера
+  /categories:
+    get:
+      tags: [categories]
+      summary: Список категорий
+  /masters:
+    get:
+      tags: [masters]
+      summary: Публичный каталог мастеров
+  /masters/{id}:
+    get:
+      tags: [masters]
+      summary: Детальная карточка мастера
   /admin/ping:
     get:
       tags: [admin]
       summary: Проверка admin/moderator доступа
-      produces: [application/json]
-      security:
-        - BearerAuth: []
-      responses:
-        "200": {description: OK, schema: {type: object, additionalProperties: {type: string}}}
-        "401": {description: Unauthorized, schema: {type: object, additionalProperties: {type: string}}}
-        "403": {description: Forbidden, schema: {type: object, additionalProperties: {type: string}}}
+  /admin/masters:
+    get:
+      tags: [admin]
+      summary: Список мастеров для модерации
+  /admin/users/{id}/moderate:
+    patch:
+      tags: [admin]
+      summary: Модерация пользователя
+  /admin/users/{id}/approve:
+    patch:
+      tags: [admin]
+      summary: Одобрить пользователя
+  /admin/users/{id}/reject:
+    patch:
+      tags: [admin]
+      summary: Отклонить пользователя
+  /admin/categories:
+    post:
+      tags: [categories]
+      summary: Создать категорию
   /ads:
     post:
       tags: [ads]
       summary: Тест создания объявления
-      description: Доступно только user со статусом approved
-      produces: [application/json]
-      security:
-        - BearerAuth: []
-      responses:
-        "200": {description: OK, schema: {type: object, additionalProperties: {type: string}}}
-        "401": {description: Unauthorized, schema: {type: object, additionalProperties: {type: string}}}
-        "403": {description: Forbidden, schema: {type: object, additionalProperties: {type: string}}}
-definitions:
-  auth.RegisterRequest:
-    type: object
-    required: [login, password]
-    properties:
-      login:
-        type: string
-        minLength: 3
-        maxLength: 64
-      password:
-        type: string
-        minLength: 6
-  auth.LoginRequest:
-    type: object
-    required: [login, password]
-    properties:
-      login:
-        type: string
-        minLength: 3
-        maxLength: 64
-      password:
-        type: string
-        minLength: 6
-  auth.MeResponse:
-    type: object
-    properties:
-      user_id:
-        type: integer
-      login:
-        type: string
-      role:
-        type: string
-  admin.ModerateUserRequest:
-    type: object
-    required: [role, status]
-    properties:
-      role:
-        type: string
-        enum: [admin, moderator, user]
-      status:
-        type: string
-        enum: [approved, rejected, pending]
+definitions: {}
