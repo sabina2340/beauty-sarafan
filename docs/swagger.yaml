@@ -1,50 +1,45 @@
-basePath: /
-definitions:
-  auth.RegisterRequest:
-    properties:
-      email:
-        type: string
-      password:
-        minLength: 6
-        type: string
-    required:
-    - email
-    - password
-    type: object
-host: localhost:8080
+swagger: "2.0"
 info:
-  contact: {}
   description: API платформы Beauty Sarafan
   title: Beauty Sarafan API
+  contact: {}
   version: "1.0"
+host: localhost:8080
+basePath: /
+securityDefinitions:
+  BearerAuth:
+    type: apiKey
+    name: Authorization
+    in: header
+    description: Bearer <token> (Swagger) или HttpOnly cookie access_token
 paths:
-  /auth/register:
-    post:
-      consumes:
-      - application/json
-      description: Создаёт пользователя с ролью master
-      parameters:
-      - description: Данные регистрации
-        in: body
-        name: data
-        required: true
-        schema:
-          $ref: '#/definitions/auth.RegisterRequest'
-      produces:
-      - application/json
-      responses:
-        "201":
-          description: Created
-          schema:
-            additionalProperties: true
-            type: object
-        "400":
-          description: Bad Request
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-      summary: Регистрация мастера
-      tags:
-      - auth
-swagger: "2.0"
+  /auth/register: {post: {tags: [auth], summary: Регистрация пользователя}}
+  /auth/login: {post: {tags: [auth], summary: Логин пользователя}}
+  /auth/me: {get: {tags: [auth], summary: Проверка авторизации}}
+  /me/profile:
+    get: {tags: [me], summary: Профиль текущего пользователя}
+    put: {tags: [me], summary: Создание/обновление профиля}
+  /me/ads: {get: {tags: [me], summary: Мои объявления}}
+  /me/ads/{id}:
+    get: {tags: [me], summary: Детали моего объявления}
+    put: {tags: [me], summary: Редактировать моё объявление}
+    delete: {tags: [me], summary: Удалить моё объявление}
+  /categories: {get: {tags: [categories], summary: Список категорий}}
+  /masters: {get: {tags: [masters], summary: Публичный каталог мастеров}}
+  /masters/{id}: {get: {tags: [masters], summary: Детальная карточка мастера}}
+  /masters/{id}/ads: {get: {tags: [ads], summary: Объявления мастера}}
+  /ads:
+    get: {tags: [ads], summary: Публичный список объявлений}
+    post: {tags: [ads], summary: Создать объявление}
+  /admin/ping: {get: {tags: [admin], summary: Проверка admin/moderator доступа}}
+  /admin/masters: {get: {tags: [admin], summary: Список мастеров для модерации}}
+  /admin/users/{id}/moderate: {patch: {tags: [admin], summary: Модерация пользователя}}
+  /admin/users/{id}/approve: {patch: {tags: [admin], summary: Одобрить пользователя}}
+  /admin/users/{id}/reject: {patch: {tags: [admin], summary: Отклонить пользователя}}
+  /admin/categories: {post: {tags: [categories], summary: Создать категорию}}
+  /admin/ads: {get: {tags: [admin], summary: Список объявлений на модерации}}
+  /admin/ads/{id}/approve: {patch: {tags: [admin], summary: Одобрить объявление}}
+  /admin/ads/{id}/reject: {patch: {tags: [admin], summary: Отклонить объявление}}
+  /equipment: {get: {tags: [equipment], summary: Каталог оборудования}}
+  /equipment/{id}: {get: {tags: [equipment], summary: Оборудование по ID}}
+definitions: {}

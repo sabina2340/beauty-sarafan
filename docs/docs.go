@@ -4,83 +4,1242 @@ package docs
 import "github.com/swaggo/swag"
 
 const docTemplate = `{
-    "schemes": {{ marshal .Schemes }},
-    "swagger": "2.0",
-    "info": {
-        "description": "{{escape .Description}}",
-        "title": "{{.Title}}",
-        "contact": {},
-        "version": "{{.Version}}"
-    },
-    "host": "{{.Host}}",
-    "basePath": "{{.BasePath}}",
-    "paths": {
-        "/auth/register": {
-            "post": {
-                "description": "Создаёт пользователя с ролью master",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "auth"
-                ],
-                "summary": "Регистрация мастера",
-                "parameters": [
-                    {
-                        "description": "Данные регистрации",
-                        "name": "data",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/auth.RegisterRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "201": {
-                        "description": "Created",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    },
-    "definitions": {
-        "auth.RegisterRequest": {
-            "type": "object",
-            "required": [
-                "email",
-                "password"
-            ],
-            "properties": {
-                "email": {
-                    "type": "string"
-                },
-                "password": {
-                    "type": "string",
-                    "minLength": 6
-                }
-            }
-        }
+  "swagger": "2.0",
+  "info": {
+    "description": "{{escape .Description}}",
+    "title": "{{.Title}}",
+    "contact": {},
+    "version": "{{.Version}}"
+  },
+  "host": "{{.Host}}",
+  "basePath": "{{.BasePath}}",
+  "securityDefinitions": {
+    "BearerAuth": {
+      "type": "apiKey",
+      "name": "Authorization",
+      "in": "header",
+      "description": "Bearer <token> (Swagger) или HttpOnly cookie access_token"
     }
+  },
+  "paths": {
+    "/auth/register": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Регистрация пользователя",
+        "description": "Создаёт пользователя с ролью user и статусом pending",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "name": "data",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/auth.RegisterRequest"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Created",
+            "schema": {
+              "type": "object",
+              "additionalProperties": true
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "schema": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/login": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Логин пользователя",
+        "description": "Логин, JWT кладётся в HttpOnly cookie access_token",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "name": "data",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/auth.LoginRequest"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "type": "object",
+              "additionalProperties": true
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "schema": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "string"
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "schema": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/me": {
+      "get": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Проверка авторизации",
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/auth.MeResponse"
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "schema": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/me/profile": {
+      "get": {
+        "tags": [
+          "me"
+        ],
+        "summary": "Профиль текущего пользователя",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/models.MasterProfile"
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "schema": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "me"
+        ],
+        "summary": "Создание/обновление профиля",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "name": "data",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/me.ProfileUpsertRequest"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/models.MasterProfile"
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "schema": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/me/ads": {
+      "get": {
+        "tags": [
+          "me"
+        ],
+        "summary": "Мои объявления",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/models.Advertisement"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/me/ads/{id}": {
+      "get": {
+        "tags": [
+          "me"
+        ],
+        "summary": "Детали моего объявления",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "type": "integer"
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/models.Advertisement"
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "schema": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "me"
+        ],
+        "summary": "Редактировать моё объявление",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "type": "integer"
+          },
+          {
+            "name": "data",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/ads.UpsertAdRequest"
+            }
+          }
+        ],
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/models.Advertisement"
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "schema": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "me"
+        ],
+        "summary": "Удалить моё объявление",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "type": "integer"
+          }
+        ]
+      }
+    },
+    "/categories": {
+      "get": {
+        "tags": [
+          "categories"
+        ],
+        "summary": "Список категорий",
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/models.Category"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/masters": {
+      "get": {
+        "tags": [
+          "masters"
+        ],
+        "summary": "Публичный каталог мастеров",
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "name": "category_id",
+            "in": "query",
+            "type": "integer"
+          },
+          {
+            "name": "slug",
+            "in": "query",
+            "type": "string"
+          },
+          {
+            "name": "city",
+            "in": "query",
+            "type": "string"
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/public.MasterCard"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/masters/{id}": {
+      "get": {
+        "tags": [
+          "masters"
+        ],
+        "summary": "Детальная карточка мастера",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "type": "integer"
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/public.MasterCard"
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "schema": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/masters/{id}/ads": {
+      "get": {
+        "tags": [
+          "ads"
+        ],
+        "summary": "Объявления мастера",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "type": "integer"
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/models.Advertisement"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/ads": {
+      "get": {
+        "tags": [
+          "ads"
+        ],
+        "summary": "Публичный список объявлений",
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "name": "type",
+            "in": "query",
+            "type": "string"
+          },
+          {
+            "name": "city",
+            "in": "query",
+            "type": "string"
+          },
+          {
+            "name": "category_id",
+            "in": "query",
+            "type": "integer"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/models.Advertisement"
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "ads"
+        ],
+        "summary": "Создать объявление",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "name": "data",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/ads.UpsertAdRequest"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Created",
+            "schema": {
+              "$ref": "#/definitions/models.Advertisement"
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "schema": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/ping": {
+      "get": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Проверка admin/moderator доступа",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ]
+      }
+    },
+    "/admin/masters": {
+      "get": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Список мастеров для модерации",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "type": "string",
+            "default": "pending"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/admin.MasterModerationItem"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/users/{id}/moderate": {
+      "patch": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Модерация пользователя",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "type": "integer"
+          },
+          {
+            "name": "data",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/admin.ModerateUserRequest"
+            }
+          }
+        ],
+        "consumes": [
+          "application/json"
+        ]
+      }
+    },
+    "/admin/users/{id}/approve": {
+      "patch": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Одобрить пользователя",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "type": "integer"
+          }
+        ]
+      }
+    },
+    "/admin/users/{id}/reject": {
+      "patch": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Отклонить пользователя",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "type": "integer"
+          },
+          {
+            "name": "data",
+            "in": "body",
+            "required": false,
+            "schema": {
+              "$ref": "#/definitions/admin.RejectUserRequest"
+            }
+          }
+        ],
+        "consumes": [
+          "application/json"
+        ]
+      }
+    },
+    "/admin/categories": {
+      "post": {
+        "tags": [
+          "categories"
+        ],
+        "summary": "Создать категорию",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "name": "data",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/categories.CreateCategoryRequest"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Created",
+            "schema": {
+              "$ref": "#/definitions/models.Category"
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "schema": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/ads": {
+      "get": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Список объявлений на модерации",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "type": "string",
+            "default": "pending"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": true
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/ads/{id}/approve": {
+      "patch": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Одобрить объявление",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "type": "integer"
+          }
+        ]
+      }
+    },
+    "/admin/ads/{id}/reject": {
+      "patch": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Отклонить объявление",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "type": "integer"
+          },
+          {
+            "name": "data",
+            "in": "body",
+            "required": false,
+            "schema": {
+              "$ref": "#/definitions/ads.RejectAdRequest"
+            }
+          }
+        ],
+        "consumes": [
+          "application/json"
+        ]
+      }
+    },
+    "/equipment": {
+      "get": {
+        "tags": [
+          "equipment"
+        ],
+        "summary": "Каталог оборудования",
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/models.EquipmentItem"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/equipment/{id}": {
+      "get": {
+        "tags": [
+          "equipment"
+        ],
+        "summary": "Оборудование по ID",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "type": "integer"
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/models.EquipmentItem"
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "schema": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "definitions": {
+    "auth.RegisterRequest": {
+      "type": "object",
+      "required": [
+        "login",
+        "password"
+      ],
+      "properties": {
+        "login": {
+          "type": "string"
+        },
+        "password": {
+          "type": "string"
+        }
+      }
+    },
+    "auth.LoginRequest": {
+      "type": "object",
+      "required": [
+        "login",
+        "password"
+      ],
+      "properties": {
+        "login": {
+          "type": "string"
+        },
+        "password": {
+          "type": "string"
+        }
+      }
+    },
+    "auth.MeResponse": {
+      "type": "object",
+      "properties": {
+        "user_id": {
+          "type": "integer"
+        },
+        "login": {
+          "type": "string"
+        },
+        "role": {
+          "type": "string"
+        }
+      }
+    },
+    "me.ProfileUpsertRequest": {
+      "type": "object",
+      "required": [
+        "category_id"
+      ],
+      "properties": {
+        "category_id": {
+          "type": "integer"
+        },
+        "full_name": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "services": {
+          "type": "string"
+        },
+        "phone": {
+          "type": "string"
+        },
+        "city": {
+          "type": "string"
+        },
+        "social_links": {
+          "type": "string"
+        }
+      }
+    },
+    "ads.UpsertAdRequest": {
+      "type": "object",
+      "required": [
+        "type",
+        "title"
+      ],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": [
+            "service",
+            "cabinet",
+            "salon"
+          ]
+        },
+        "title": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "city": {
+          "type": "string"
+        },
+        "category_id": {
+          "type": "integer"
+        }
+      }
+    },
+    "ads.RejectAdRequest": {
+      "type": "object",
+      "properties": {
+        "reason": {
+          "type": "string"
+        }
+      }
+    },
+    "admin.RejectUserRequest": {
+      "type": "object",
+      "properties": {
+        "reason": {
+          "type": "string"
+        }
+      }
+    },
+    "admin.ModerateUserRequest": {
+      "type": "object",
+      "required": [
+        "role",
+        "status"
+      ],
+      "properties": {
+        "role": {
+          "type": "string",
+          "enum": [
+            "admin",
+            "moderator",
+            "user"
+          ]
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "approved",
+            "rejected",
+            "pending"
+          ]
+        }
+      }
+    },
+    "categories.CreateCategoryRequest": {
+      "type": "object",
+      "required": [
+        "name",
+        "slug"
+      ],
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "slug": {
+          "type": "string"
+        }
+      }
+    },
+    "models.Category": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "integer"
+        },
+        "name": {
+          "type": "string"
+        },
+        "slug": {
+          "type": "string"
+        }
+      }
+    },
+    "models.MasterProfile": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "integer"
+        },
+        "user_id": {
+          "type": "integer"
+        },
+        "category_id": {
+          "type": "integer"
+        },
+        "full_name": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "services": {
+          "type": "string"
+        },
+        "phone": {
+          "type": "string"
+        },
+        "city": {
+          "type": "string"
+        },
+        "social_links": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        }
+      }
+    },
+    "models.Advertisement": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "integer"
+        },
+        "user_id": {
+          "type": "integer"
+        },
+        "type": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "city": {
+          "type": "string"
+        },
+        "category_id": {
+          "type": "integer"
+        },
+        "status": {
+          "type": "string"
+        },
+        "rejection_reason": {
+          "type": "string"
+        }
+      }
+    },
+    "models.EquipmentItem": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "integer"
+        },
+        "name": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "price": {
+          "type": "number"
+        },
+        "image_url": {
+          "type": "string"
+        }
+      }
+    },
+    "public.MasterCard": {
+      "type": "object",
+      "properties": {
+        "user_id": {
+          "type": "integer"
+        },
+        "login": {
+          "type": "string"
+        },
+        "full_name": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "services": {
+          "type": "string"
+        },
+        "phone": {
+          "type": "string"
+        },
+        "city": {
+          "type": "string"
+        },
+        "social_links": {
+          "type": "string"
+        },
+        "category_id": {
+          "type": "integer"
+        },
+        "category_name": {
+          "type": "string"
+        },
+        "category_slug": {
+          "type": "string"
+        }
+      }
+    },
+    "admin.MasterModerationItem": {
+      "type": "object",
+      "properties": {
+        "user_id": {
+          "type": "integer"
+        },
+        "login": {
+          "type": "string"
+        },
+        "role": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "rejection_reason": {
+          "type": "string"
+        },
+        "profile_id": {
+          "type": "integer"
+        },
+        "full_name": {
+          "type": "string"
+        },
+        "city": {
+          "type": "string"
+        },
+        "category_id": {
+          "type": "integer"
+        },
+        "category_name": {
+          "type": "string"
+        },
+        "category_slug": {
+          "type": "string"
+        }
+      }
+    }
+  }
 }`
 
-// SwaggerInfo holds exported Swagger Info so clients can modify it
 var SwaggerInfo = &swag.Spec{
 	Version:          "1.0",
 	Host:             "localhost:8080",
