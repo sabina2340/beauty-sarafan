@@ -43,7 +43,7 @@ func ListMasters(c *gin.Context) {
 		Select(`u.id as user_id, u.login, u.role, u.status, u.rejection_reason,
 			mp.id as profile_id, mp.full_name, mp.city, mp.category_id,
 			c.name as category_name, c.slug as category_slug`).
-		Joins("JOIN master_profiles mp ON mp.user_id = u.id").
+		Joins("LEFT JOIN master_profiles mp ON mp.user_id = u.id").
 		Joins("LEFT JOIN categories c ON c.id = mp.category_id").
 		Where("u.role = ? AND u.status = ?", models.RoleUser, status).
 		Order("u.id desc").
