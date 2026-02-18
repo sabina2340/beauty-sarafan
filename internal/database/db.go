@@ -42,7 +42,7 @@ func InitDB() *gorm.DB {
 		&models.Advertisement{},
 		&models.Tariff{},
 		&models.Payment{},
-		&models.Equipment{},
+		&models.EquipmentItem{},
 		&models.ModerationLog{},
 	)
 	if err != nil {
