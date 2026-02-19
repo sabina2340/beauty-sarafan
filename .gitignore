@@ -1,0 +1,5 @@
+# frontend
+beauty-frontend/node_modules/
+beauty-frontend/.next/
+beauty-frontend/out/
+beauty-frontend/.env.local
