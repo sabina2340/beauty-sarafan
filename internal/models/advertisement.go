@@ -2,14 +2,28 @@ package models
 
 import "time"
 
+const (
+	AdTypeService = "service"
+	AdTypeCabinet = "cabinet"
+	AdTypeSalon   = "salon"
+
+	AdStatusPending  = "pending"
+	AdStatusApproved = "approved"
+	AdStatusRejected = "rejected"
+	AdStatusActive   = "active"
+	AdStatusExpired  = "expired"
+)
+
 type Advertisement struct {
-	ID            uint
-	MasterID      uint
-	Title         string
-	Description   string
-	AdType        string // service | cabinet | salon
-	Status        string // pending | approved | rejected
-	PaymentStatus string // unpaid | paid
-	TariffID      uint
-	CreatedAt     time.Time
+	ID              uint      `gorm:"primaryKey"`
+	UserID          uint      `gorm:"index;not null"`
+	Type            string    `gorm:"type:varchar(20);not null"`
+	Title           string    `gorm:"type:varchar(255);not null"`
+	Description     string    `gorm:"type:text"`
+	City            string    `gorm:"type:varchar(100)"`
+	CategoryID      *uint     `gorm:"index"`
+	Status          string    `gorm:"type:varchar(20);not null;default:pending"`
+	RejectionReason *string   `gorm:"type:text"`
+	CreatedAt       time.Time `gorm:"autoCreateTime"`
+	UpdatedAt       time.Time `gorm:"autoUpdateTime"`
 }

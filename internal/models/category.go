@@ -1,7 +1,7 @@
 package models
 
 type Category struct {
-	ID   uint
-	Name string
-	Slug string
+	ID   uint   `gorm:"primaryKey"`
+	Name string `gorm:"not null"`
+	Slug string `gorm:"uniqueIndex;not null"`
 }
