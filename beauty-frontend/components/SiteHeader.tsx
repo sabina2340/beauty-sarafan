@@ -10,6 +10,7 @@ export function SiteHeader() {
         <nav className="nav" aria-label="Main navigation">
           <Link href="/">Главная</Link>
           <Link href="/masters">Мастера</Link>
+          <Link href="/admin">Админ</Link>
         </nav>
       </div>
     </header>
