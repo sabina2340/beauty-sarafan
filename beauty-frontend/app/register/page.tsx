@@ -1,41 +1,64 @@
-import type { Metadata } from "next";
-import Link from "next/link";
+"use client";
 
-export const metadata: Metadata = {
-  title: "Регистрация | Beauty Sarafan",
-  description: "Создание аккаунта Beauty Sarafan",
-};
+import Link from "next/link";
+import { FormEvent, useState } from "react";
+import { useRouter } from "next/navigation";
+import { login, register } from "@/lib/auth-api";
 
 export default function RegisterPage() {
-  return (
-    <section className="card authCard">
-      <h1 className="h1">Регистрация</h1>
-      <p className="muted">Создайте аккаунт, чтобы пользоваться сервисом.</p>
+    const router = useRouter();
+    const [userLogin, setUserLogin] = useState("");
+    const [password, setPassword] = useState("");
+    const [error, setError] = useState("");
+    const [success, setSuccess] = useState("");
+    const [loading, setLoading] = useState(false);
 
-      <form className="authForm">
-        <label className="label" htmlFor="name">
-          Имя
-        </label>
-        <input id="name" name="name" type="text" className="input" placeholder="Анна" />
+    const onSubmit = async (e: FormEvent) => {
+        e.preventDefault();
+        setError("");
+        setSuccess("");
+        setLoading(true);
 
-        <label className="label" htmlFor="email">
-          Email
-        </label>
-        <input id="email" name="email" type="email" className="input" placeholder="you@example.com" />
+        try {
+            const reg = await register({ login: userLogin, password });
+            setSuccess(reg.message);
+            await login({ login: userLogin, password });
+            router.push("/profile");
+            router.refresh();
+        } catch (err) {
+            setError(err instanceof Error ? err.message : "Ошибка регистрации");
+        } finally {
+            setLoading(false);
+        }
+    };
 
-        <label className="label" htmlFor="password">
-          Пароль
-        </label>
-        <input id="password" name="password" type="password" className="input" placeholder="Минимум 8 символов" />
+    return (
+        <section className="card authCard">
+            <h1 className="h1">Регистрация</h1>
+            <p className="muted">Создайте аккаунт, чтобы пользоваться сервисом.</p>
 
-        <button type="submit" className="btn btnPrimary authSubmit">
-          Зарегистрироваться
-        </button>
-      </form>
+            <form className="authForm" onSubmit={onSubmit}>
+                <label className="label" htmlFor="login">
+                    Логин
+                </label>
+                <input id="login" name="login" type="text" className="input" value={userLogin} onChange={(e) => setUserLogin(e.target.value)} required minLength={3} />
 
-      <p className="muted authHint">
-        Уже есть аккаунт? <Link href="/login">Войти</Link>
-      </p>
-    </section>
-  );
+                <label className="label" htmlFor="password">
+                    Пароль
+                </label>
+                <input id="password" name="password" type="password" className="input" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={6} />
+
+                <button type="submit" className="btn btnPrimary authSubmit" disabled={loading}>
+                    {loading ? "Регистрируем..." : "Зарегистрироваться"}
+                </button>
+            </form>
+
+            {success ? <p className="adminOk authHint">{success}</p> : null}
+            {error ? <p className="adminError authHint">{error}</p> : null}
+
+            <p className="muted authHint">
+                Уже есть аккаунт? <Link href="/login">Войти</Link>
+            </p>
+        </section>
+    );
 }

@@ -57,6 +57,10 @@ export default function AdminPage() {
       const res = await getAdminMasters(masterStatus);
       setMasters(res);
       setOk(`Загружено мастеров: ${res.length}`);
+
+      const safeList = Array.isArray(res) ? res : [];
+      setMasters(safeList);
+      setOk(`Загружено мастеров: ${safeList.length}`);
     } catch (e) {
       setFail(e);
     }
@@ -65,8 +69,13 @@ export default function AdminPage() {
   const loadAds = async () => {
     try {
       const res = await getAdminAds(adsStatus);
+
       setAds(res);
       setOk(`Загружено объявлений: ${res.length}`);
+
+      const safeList = Array.isArray(res) ? res : [];
+      setAds(safeList);
+      setOk(`Загружено объявлений: ${safeList.length}`);
     } catch (e) {
       setFail(e);
     }
