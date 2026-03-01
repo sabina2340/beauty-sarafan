@@ -242,3 +242,75 @@ body { margin: 0; color: var(--text); background: var(--bg); }
   text-decoration: none;
   font-weight: 700;
 }
+
+
+.adminPage {
+  display: grid;
+  gap: 14px;
+}
+
+.adminGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 12px;
+}
+
+.adminCard {
+  padding: 18px;
+}
+
+.adminSection {
+  margin-top: 8px;
+}
+
+.adminSectionHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+
+.adminControls {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.adminList {
+  display: grid;
+  gap: 10px;
+}
+
+.adminItem {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 12px;
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+
+.adminActions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.adminOk,
+.adminError {
+  margin: 0;
+  font-weight: 700;
+}
+
+.adminOk {
+  color: #207227;
+}
+
+.adminError {
+  color: #b43232;
+}
+
