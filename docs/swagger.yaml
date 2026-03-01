@@ -1,15 +1,254 @@
 basePath: /
 definitions:
-  auth.RegisterRequest:
+  admin.MasterModerationItem:
     properties:
-      email:
+      category_id:
+        type: integer
+      category_name:
+        type: string
+      category_slug:
+        type: string
+      city:
+        type: string
+      full_name:
+        type: string
+      login:
+        type: string
+      profile_id:
+        type: integer
+      rejection_reason:
+        type: string
+      role:
+        type: string
+      status:
+        type: string
+      user_id:
+        type: integer
+    type: object
+  admin.ModerateUserRequest:
+    properties:
+      role:
+        enum:
+        - admin
+        - moderator
+        - user
+        type: string
+      status:
+        enum:
+        - approved
+        - rejected
+        - pending
+        type: string
+    required:
+    - role
+    - status
+    type: object
+  admin.RejectUserRequest:
+    properties:
+      reason:
+        type: string
+    type: object
+  ads.RejectAdRequest:
+    properties:
+      reason:
+        type: string
+    type: object
+  ads.UpsertAdRequest:
+    properties:
+      category_id:
+        type: integer
+      city:
+        type: string
+      description:
+        type: string
+      title:
+        type: string
+      type:
+        enum:
+        - service
+        - cabinet
+        - salon
+        type: string
+    required:
+    - title
+    - type
+    type: object
+  auth.LoginRequest:
+    properties:
+      login:
+        maxLength: 64
+        minLength: 3
         type: string
       password:
         minLength: 6
         type: string
     required:
-    - email
+    - login
     - password
+    type: object
+  auth.MeResponse:
+    properties:
+      login:
+        type: string
+      role:
+        type: string
+      user_id:
+        type: integer
+    type: object
+  auth.RegisterRequest:
+    properties:
+      login:
+        maxLength: 64
+        minLength: 3
+        type: string
+      password:
+        minLength: 6
+        type: string
+    required:
+    - login
+    - password
+    type: object
+  categories.CreateCategoryRequest:
+    properties:
+      audience:
+        enum:
+        - master
+        - client
+        - both
+        type: string
+      name:
+        type: string
+      slug:
+        type: string
+    required:
+    - audience
+    - name
+    - slug
+    type: object
+  me.ProfileUpsertRequest:
+    properties:
+      category_id:
+        type: integer
+      city:
+        type: string
+      description:
+        type: string
+      full_name:
+        type: string
+      phone:
+        type: string
+      services:
+        type: string
+      social_links:
+        type: string
+    required:
+    - category_id
+    type: object
+  models.Advertisement:
+    properties:
+      categoryID:
+        type: integer
+      city:
+        type: string
+      createdAt:
+        type: string
+      description:
+        type: string
+      id:
+        type: integer
+      rejectionReason:
+        type: string
+      status:
+        type: string
+      title:
+        type: string
+      type:
+        type: string
+      updatedAt:
+        type: string
+      userID:
+        type: integer
+    type: object
+  models.Category:
+    properties:
+      audience:
+        description: master | client | both
+        type: string
+      id:
+        type: integer
+      name:
+        type: string
+      slug:
+        type: string
+    type: object
+  models.EquipmentItem:
+    properties:
+      createdAt:
+        type: string
+      description:
+        type: string
+      id:
+        type: integer
+      imageURL:
+        type: string
+      name:
+        type: string
+      price:
+        type: number
+      updatedAt:
+        type: string
+    type: object
+  models.MasterProfile:
+    properties:
+      categoryID:
+        type: integer
+      city:
+        type: string
+      createdAt:
+        type: string
+      description:
+        type: string
+      fullName:
+        type: string
+      id:
+        type: integer
+      phone:
+        type: string
+      services:
+        type: string
+      socialLinks:
+        type: string
+      status:
+        type: string
+      updatedAt:
+        type: string
+      userID:
+        type: integer
+    type: object
+  public.MasterCard:
+    properties:
+      category_id:
+        type: integer
+      category_name:
+        type: string
+      category_slug:
+        type: string
+      city:
+        type: string
+      description:
+        type: string
+      full_name:
+        type: string
+      login:
+        type: string
+      phone:
+        type: string
+      services:
+        type: string
+      social_links:
+        type: string
+      user_id:
+        type: integer
     type: object
 host: localhost:8080
 info:
@@ -18,11 +257,388 @@ info:
   title: Beauty Sarafan API
   version: "1.0"
 paths:
+  /admin/ads:
+    get:
+      parameters:
+      - default: pending
+        description: Статус
+        in: query
+        name: status
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              additionalProperties: true
+              type: object
+            type: array
+      summary: Список объявлений для модерации
+      tags:
+      - admin
+  /admin/ads/{id}/approve:
+    patch:
+      parameters:
+      - description: Ad ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.Advertisement'
+      summary: Одобрить объявление
+      tags:
+      - admin
+  /admin/ads/{id}/reject:
+    patch:
+      consumes:
+      - application/json
+      parameters:
+      - description: Ad ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Причина
+        in: body
+        name: data
+        schema:
+          $ref: '#/definitions/ads.RejectAdRequest'
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.Advertisement'
+      summary: Отклонить объявление
+      tags:
+      - admin
+  /admin/categories:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Категория
+        in: body
+        name: data
+        required: true
+        schema:
+          $ref: '#/definitions/categories.CreateCategoryRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/models.Category'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Создать категорию
+      tags:
+      - categories
+  /admin/masters:
+    get:
+      description: Возвращает список мастеров с профилями по статусу (по умолчанию
+        pending)
+      parameters:
+      - default: pending
+        description: Статус
+        in: query
+        name: status
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/admin.MasterModerationItem'
+            type: array
+      summary: Список мастеров для модерации
+      tags:
+      - admin
+  /admin/ping:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Проверка admin/moderator доступа
+      tags:
+      - admin
+  /admin/users/{id}/approve:
+    patch:
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Одобрить пользователя
+      tags:
+      - admin
+  /admin/users/{id}/moderate:
+    patch:
+      consumes:
+      - application/json
+      description: Обновляет роль и статус пользователя (admin/moderator)
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Новая роль и статус
+        in: body
+        name: data
+        required: true
+        schema:
+          $ref: '#/definitions/admin.ModerateUserRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Модерация пользователя
+      tags:
+      - admin
+  /admin/users/{id}/reject:
+    patch:
+      consumes:
+      - application/json
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Причина
+        in: body
+        name: data
+        schema:
+          $ref: '#/definitions/admin.RejectUserRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Отклонить пользователя
+      tags:
+      - admin
+  /ads:
+    get:
+      parameters:
+      - description: Тип service|cabinet|salon
+        in: query
+        name: type
+        type: string
+      - description: Город
+        in: query
+        name: city
+        type: string
+      - description: ID категории
+        in: query
+        name: category_id
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.Advertisement'
+            type: array
+      summary: Публичный список объявлений
+      tags:
+      - ads
+    post:
+      consumes:
+      - application/json
+      description: Доступно только user со статусом approved; новое объявление уходит
+        в pending
+      parameters:
+      - description: Объявление
+        in: body
+        name: data
+        required: true
+        schema:
+          $ref: '#/definitions/ads.UpsertAdRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/models.Advertisement'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Создать объявление
+      tags:
+      - ads
+  /auth/login:
+    post:
+      consumes:
+      - application/json
+      description: Выполняет вход и кладёт JWT в HttpOnly cookie access_token
+      parameters:
+      - description: Данные логина
+        in: body
+        name: data
+        required: true
+        schema:
+          $ref: '#/definitions/auth.LoginRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Логин пользователя
+      tags:
+      - auth
+  /auth/me:
+    get:
+      description: Возвращает user_id и role из JWT
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/auth.MeResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Проверка авторизации
+      tags:
+      - auth
   /auth/register:
     post:
       consumes:
       - application/json
-      description: Создаёт пользователя с ролью master
+      description: Создаёт пользователя с ролью user и статусом pending
       parameters:
       - description: Данные регистрации
         in: body
@@ -44,7 +660,324 @@ paths:
             additionalProperties:
               type: string
             type: object
-      summary: Регистрация мастера
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Регистрация пользователя
       tags:
       - auth
+  /categories:
+    get:
+      parameters:
+      - description: 'Фильтр по аудитории: master|client'
+        in: query
+        name: audience
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.Category'
+            type: array
+      summary: Список категорий
+      tags:
+      - categories
+  /equipment:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.EquipmentItem'
+            type: array
+      summary: Каталог оборудования
+      tags:
+      - equipment
+  /equipment/{id}:
+    get:
+      parameters:
+      - description: Equipment ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.EquipmentItem'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Оборудование по ID
+      tags:
+      - equipment
+  /masters:
+    get:
+      parameters:
+      - description: ID категории
+        in: query
+        name: category_id
+        type: integer
+      - description: Slug категории
+        in: query
+        name: slug
+        type: string
+      - description: Город
+        in: query
+        name: city
+        type: string
+      - description: Поиск по имени
+        in: query
+        name: q
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/public.MasterCard'
+            type: array
+      summary: Публичный каталог мастеров
+      tags:
+      - masters
+  /masters/{id}:
+    get:
+      parameters:
+      - description: User ID мастера
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/public.MasterCard'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Детальная карточка мастера
+      tags:
+      - masters
+  /masters/{id}/ads:
+    get:
+      parameters:
+      - description: Master user ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.Advertisement'
+            type: array
+      summary: Объявления мастера
+      tags:
+      - ads
+  /me/ads:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.Advertisement'
+            type: array
+      summary: Мои объявления
+      tags:
+      - me
+  /me/ads/{id}:
+    delete:
+      parameters:
+      - description: Ad ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      responses:
+        "204":
+          description: No Content
+          schema:
+            type: string
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Удалить моё объявление
+      tags:
+      - me
+    get:
+      parameters:
+      - description: Ad ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.Advertisement'
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Детали моего объявления
+      tags:
+      - me
+    put:
+      consumes:
+      - application/json
+      description: После правок объявление снова уходит на модерацию (pending)
+      parameters:
+      - description: Ad ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Объявление
+        in: body
+        name: data
+        required: true
+        schema:
+          $ref: '#/definitions/ads.UpsertAdRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.Advertisement'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Редактировать моё объявление
+      tags:
+      - me
+  /me/profile:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.MasterProfile'
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Профиль текущего мастера
+      tags:
+      - me
+    put:
+      consumes:
+      - application/json
+      description: Upsert профиля. После изменений отправляет пользователя на повторную
+        модерацию (status=pending)
+      parameters:
+      - description: Данные профиля
+        in: body
+        name: data
+        required: true
+        schema:
+          $ref: '#/definitions/me.ProfileUpsertRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.MasterProfile'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Создание/обновление профиля мастера
+      tags:
+      - me
+securityDefinitions:
+  BearerAuth:
+    description: Bearer <token> для Swagger (основной способ в API — cookie access_token)
+    in: header
+    name: Authorization
+    type: apiKey
 swagger: "2.0"

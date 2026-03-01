@@ -13,6 +13,10 @@ import (
 // @description API платформы Beauty Sarafan
 // @host localhost:8080
 // @BasePath /
+// @securityDefinitions.apikey BearerAuth
+// @in header
+// @name Authorization
+// @description Bearer <token> для Swagger (основной способ в API — cookie access_token)
 func main() {
 	db := database.InitDB()
 
