@@ -333,3 +333,22 @@ button:disabled {
   cursor: not-allowed;
 }
 
+.textarea {
+  width: 100%;
+  min-height: 92px;
+  border-radius: 14px;
+  border: 1px solid var(--line);
+  padding: 10px 14px;
+  font-size: 16px;
+  outline: none;
+  background: #fff;
+  resize: vertical;
+}
+
+.profileStatus {
+  margin: 12px 0;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #fff;
+}

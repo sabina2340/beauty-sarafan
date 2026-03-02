@@ -69,6 +69,8 @@ func RegisterRoutes(r *gin.Engine, db *gorm.DB) {
 		adminGroup.PATCH("/users/:id/moderate", admin.ModerateUser)
 		adminGroup.PATCH("/users/:id/approve", admin.ApproveUser)
 		adminGroup.PATCH("/users/:id/reject", admin.RejectUser)
+		adminGroup.PATCH("/masters/:id/approve", admin.ApproveUser)
+		adminGroup.PATCH("/masters/:id/reject", admin.RejectUser)
 
 		adminGroup.POST("/categories", categories.Create)
 

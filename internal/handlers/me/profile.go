@@ -63,15 +63,16 @@ func PutProfile(c *gin.Context) {
 	err := database.DB.Where("user_id = ?", userID).First(&profile).Error
 	if err != nil {
 		profile = models.MasterProfile{
-			UserID:      userID,
-			CategoryID:  req.CategoryID,
-			FullName:    req.FullName,
-			Description: req.Description,
-			Services:    req.Services,
-			Phone:       req.Phone,
-			City:        req.City,
-			SocialLinks: req.SocialLinks,
-			Status:      models.StatusPending,
+			UserID:          userID,
+			CategoryID:      req.CategoryID,
+			FullName:        req.FullName,
+			Description:     req.Description,
+			Services:        req.Services,
+			Phone:           req.Phone,
+			City:            req.City,
+			SocialLinks:     req.SocialLinks,
+			Status:          models.StatusPending,
+			RejectionReason: nil,
 		}
 
 		if err := database.DB.Create(&profile).Error; err != nil {
@@ -87,6 +88,7 @@ func PutProfile(c *gin.Context) {
 		profile.City = req.City
 		profile.SocialLinks = req.SocialLinks
 		profile.Status = models.StatusPending
+		profile.RejectionReason = nil
 
 		if err := database.DB.Save(&profile).Error; err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to update profile"})

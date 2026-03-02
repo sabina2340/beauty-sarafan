@@ -65,7 +65,7 @@ export async function moderateUser(userId: number, payload: { role: "admin" | "m
 }
 
 export async function approveUser(userId: number) {
-  const response = await fetch(`${API_URL}/admin/users/${userId}/approve`, {
+  const response = await fetch(`${API_URL}/admin/masters/${userId}/approve`, {
     method: "PATCH",
     credentials: "include",
   });
@@ -73,7 +73,7 @@ export async function approveUser(userId: number) {
 }
 
 export async function rejectUser(userId: number, reason: string) {
-  const response = await fetch(`${API_URL}/admin/users/${userId}/reject`, {
+  const response = await fetch(`${API_URL}/admin/masters/${userId}/reject`, {
     method: "PATCH",
     credentials: "include",
     headers: { "Content-Type": "application/json" },

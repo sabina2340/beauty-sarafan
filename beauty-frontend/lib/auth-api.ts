@@ -4,6 +4,20 @@ export type AuthMe = {
   role: "admin" | "moderator" | "user";
 };
 
+export type MyMasterProfile = {
+  id: number;
+  user_id: number;
+  category_id: number;
+  full_name: string;
+  description: string;
+  services: string;
+  phone: string;
+  city: string;
+  social_links: string;
+  status: "pending" | "approved" | "rejected";
+  rejection_reason?: string | null;
+};
+
 const API_URL = "/api";
 
 async function parseJson<T>(response: Response): Promise<T> {
@@ -40,4 +54,30 @@ export async function register(payload: { login: string; password: string }) {
     body: JSON.stringify(payload),
   });
   return parseJson<{ message: string; user_id: number; status: string }>(response);
+}
+
+export async function getMyProfile() {
+  const response = await fetch(`${API_URL}/me/profile`, {
+    credentials: "include",
+    cache: "no-store",
+  });
+  return parseJson<MyMasterProfile>(response);
+}
+
+export async function upsertMyProfile(payload: {
+  category_id: number;
+  full_name: string;
+  description: string;
+  services: string;
+  phone: string;
+  city: string;
+  social_links: string;
+}) {
+  const response = await fetch(`${API_URL}/me/profile`, {
+    method: "PUT",
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  return parseJson<MyMasterProfile>(response);
 }

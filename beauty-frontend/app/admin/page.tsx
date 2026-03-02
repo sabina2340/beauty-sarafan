@@ -8,7 +8,6 @@ import {
   createCategory,
   getAdminAds,
   getAdminMasters,
-  moderateUser,
   rejectAd,
   rejectUser,
   type AdminAd,
@@ -55,9 +54,6 @@ export default function AdminPage() {
   const loadMasters = async () => {
     try {
       const res = await getAdminMasters(masterStatus);
-      setMasters(res);
-      setOk(`Загружено мастеров: ${res.length}`);
-
       const safeList = Array.isArray(res) ? res : [];
       setMasters(safeList);
       setOk(`Загружено мастеров: ${safeList.length}`);
@@ -69,10 +65,6 @@ export default function AdminPage() {
   const loadAds = async () => {
     try {
       const res = await getAdminAds(adsStatus);
-
-      setAds(res);
-      setOk(`Загружено объявлений: ${res.length}`);
-
       const safeList = Array.isArray(res) ? res : [];
       setAds(safeList);
       setOk(`Загружено объявлений: ${safeList.length}`);
@@ -161,7 +153,6 @@ export default function AdminPage() {
               <div className="adminActions">
                 <button className="btn btnPrimary" onClick={async () => { try { await approveUser(master.user_id); await loadMasters(); setOk("Пользователь одобрен"); } catch (e) { setFail(e); } }}>Одобрить</button>
                 <button className="btn btnGhost" onClick={async () => { try { await rejectUser(master.user_id, quickRejectReason("пользователь")); await loadMasters(); setOk("Пользователь отклонён"); } catch (e) { setFail(e); } }}>Отклонить</button>
-                <button className="btn btnSecondary" onClick={async () => { try { await moderateUser(master.user_id, { role: master.role, status: "pending" }); await loadMasters(); setOk("Статус изменён на pending"); } catch (e) { setFail(e); } }}>В pending</button>
               </div>
             </div>
           ))}
