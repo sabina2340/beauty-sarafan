@@ -69,13 +69,14 @@ func RequireAnyRole(roles ...string) gin.HandlerFunc {
 func EnsureApproved() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		userID := c.GetUint("user_id")
-		var user models.User
-		if err := database.DB.First(&user, userID).Error; err != nil {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "user not found"})
+
+		var profile models.MasterProfile
+		if err := database.DB.Where("user_id = ?", userID).First(&profile).Error; err != nil {
+			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "сначала заполните профиль мастера"})
 			return
 		}
 
-		if user.Status != models.StatusApproved {
+		if profile.Status != models.StatusApproved {
 			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "профиль на модерации или отклонён"})
 			return
 		}
