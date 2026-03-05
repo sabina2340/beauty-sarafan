@@ -45,7 +45,7 @@ func ListMasters(c *gin.Context) {
 			mp.category_id, c.name as category_name, c.slug as category_slug`).
 		Joins("JOIN master_profiles mp ON mp.user_id = u.id").
 		Joins("LEFT JOIN categories c ON c.id = mp.category_id").
-		Where("u.role = ? AND u.status = ?", models.RoleUser, models.StatusApproved)
+		Where("u.role = ? AND mp.status = ?", models.RoleUser, models.StatusApproved)
 
 	if categoryID != "" {
 		query = query.Where("mp.category_id = ?", categoryID)
@@ -92,7 +92,7 @@ func GetMaster(c *gin.Context) {
 			mp.category_id, c.name as category_name, c.slug as category_slug`).
 		Joins("JOIN master_profiles mp ON mp.user_id = u.id").
 		Joins("LEFT JOIN categories c ON c.id = mp.category_id").
-		Where("u.id = ? AND u.role = ? AND u.status = ?", id, models.RoleUser, models.StatusApproved).
+		Where("u.id = ? AND u.role = ? AND mp.status = ?", id, models.RoleUser, models.StatusApproved).
 		Scan(&master).Error
 	if err != nil || master.UserID == 0 {
 		c.JSON(http.StatusNotFound, gin.H{"error": "master not found"})
