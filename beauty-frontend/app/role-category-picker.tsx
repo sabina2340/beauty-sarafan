@@ -1,76 +1,68 @@
 "use client";
 
-import { useMemo, useState } from "react";
 import Link from "next/link";
-import type { Category } from "./page";
+import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import { authMe } from "@/lib/auth-api";
+import type { CategoryGroup } from "./page";
 
 type Props = {
-    masterCategories: Category[];
-    clientCategories: Category[];
+  groups: CategoryGroup[];
 };
 
-type Role = "master" | "client";
+type Mode = "offer" | "seek" | "growth";
 
-export function RoleCategoryPicker({ masterCategories, clientCategories }: Props) {
-    const [role, setRole] = useState<Role | null>(null);
+export function RoleCategoryPicker({ groups }: Props) {
+  const router = useRouter();
+  const [mode, setMode] = useState<Mode>("offer");
 
-    const categories = useMemo(() => {
-        if (role === "master") return masterCategories;
-        if (role === "client") return clientCategories;
-        return [];
-    }, [role, masterCategories, clientCategories]);
+  const shownGroups = useMemo(() => {
+    if (mode === "growth") return groups.filter((g) => g.is_business);
+    return groups.filter((g) => !g.is_business);
+  }, [groups, mode]);
 
-    return (
-        <div className="picker">
-            <h2 className="h2">Кто вы?</h2>
+  const onOfferClick = async (categoryId: number) => {
+    try {
+      await authMe();
+      router.push(`/profile?category_id=${categoryId}`);
+    } catch {
+      router.push(`/register?category_id=${categoryId}`);
+    }
+  };
 
-            <div className="roleButtons">
-                <button
-                    type="button"
-                    className={`btn ${role === "master" ? "btnPrimary" : "btnGhost"}`}
-                    onClick={() => setRole("master")}
-                >
-                    Вы предлагаете услуги?
-                </button>
+  return (
+    <div className="homeBlocks">
+      <div className="homeIntro">
+        <h1 className="h1">Приветствуем!</h1>
+        <p className="lead">Сарафан — это онлайн-платформа специалистов и клиентов.</p>
+      </div>
 
-                <button
-                    type="button"
-                    className={`btn ${role === "client" ? "btnSecondary" : "btnGhost"}`}
-                    onClick={() => setRole("client")}
-                >
-                    Вы ищете услугу?
-                </button>
+      <div className="roleButtons">
+        <button type="button" className={`btn ${mode === "offer" ? "btnSecondary" : "btnGhost"}`} onClick={() => setMode("offer")}>✅ Предлагаю услугу</button>
+        <button type="button" className={`btn ${mode === "seek" ? "btnSecondary" : "btnGhost"}`} onClick={() => setMode("seek")}>✅ Ищу услугу</button>
+        <button type="button" className={`btn ${mode === "growth" ? "btnSecondary" : "btnGhost"}`} onClick={() => setMode("growth")}>✅ Развитие специалистов и бизнеса</button>
+      </div>
+
+      <div className="manualGroups">
+        {shownGroups.map((group) => (
+          <section key={group.group_name} className="groupCard">
+            <h3>{group.group_title}</h3>
+            <div className="servicesChips">
+              {group.items.map((item) => (
+                mode === "offer" ? (
+                  <button key={item.id} type="button" className="serviceChip serviceChipBtn" onClick={() => onOfferClick(item.id)}>{item.name}</button>
+                ) : (
+                  <Link key={item.id} href={`/masters?slug=${encodeURIComponent(item.slug)}`} className="serviceChip">{item.name}</Link>
+                )
+              ))}
             </div>
+          </section>
+        ))}
+      </div>
 
-            {role && (
-                <div style={{ marginTop: 20 }}>
-                    <h3 className="h3">
-                        {role === "master" ? "Вы предлагаете услуги" : "Вы ищете услугу"}
-                    </h3>
-
-                    <p className="muted" style={{ marginTop: 6 }}>
-                        Выберите категорию:
-                    </p>
-
-                    <div className="grid2" style={{ marginTop: 12 }}>
-                        {categories.map((cat) => (
-                            <Link
-                                key={cat.id}
-                                href={`/masters?slug=${encodeURIComponent(cat.slug)}`}
-                                className="chip"
-                            >
-                                {cat.name}
-                            </Link>
-                        ))}
-                    </div>
-
-                    {categories.length === 0 && (
-                        <p className="muted" style={{ marginTop: 10 }}>
-                            Категорий пока нет.
-                        </p>
-                    )}
-                </div>
-            )}
-        </div>
-    );
+      <div className="ctaRow">
+        <Link href="/masters" className="btn btnPrimary">Перейти в каталог</Link>
+      </div>
+    </div>
+  );
 }

@@ -1,4 +1,4 @@
-import { Advertisement, MasterCard } from "@/lib/types";
+import { Advertisement, MasterCard, MasterDetail } from "@/lib/types";
 
 // В DEV ходим через Next proxy, чтобы не было CORS в браузере
 const API_URL = "/api";
@@ -26,9 +26,9 @@ export async function getMasters(params?: {
   return parseResponse<MasterCard[]>(response);
 }
 
-export async function getMasterById(id: string): Promise<MasterCard> {
+export async function getMasterById(id: string): Promise<MasterDetail> {
   const response = await fetch(`${API_URL}/masters/${id}`, { cache: "no-store" });
-  return parseResponse<MasterCard>(response);
+  return parseResponse<MasterDetail>(response);
 }
 
 export async function getMasterAds(id: string): Promise<Advertisement[]> {

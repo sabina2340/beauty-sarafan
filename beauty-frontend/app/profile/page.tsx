@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { FormEvent, useEffect, useState } from "react";
-import { authMe, getMyProfile, upsertMyProfile, type AuthMe, type MyMasterProfile } from "@/lib/auth-api";
+import { acceptPersonalDataConsent, authMe, getMyProfile, upsertMyProfile, type AuthMe, type MyMasterProfile } from "@/lib/auth-api";
 
 type Category = { ID: number; Name: string };
 
@@ -21,6 +21,8 @@ export default function ProfilePage() {
   const [phone, setPhone] = useState("");
   const [city, setCity] = useState("");
   const [socialLinks, setSocialLinks] = useState("");
+  const [avatar, setAvatar] = useState<File | null>(null);
+  const [works, setWorks] = useState<File[]>([]);
 
   useEffect(() => {
     let active = true;
@@ -35,20 +37,21 @@ export default function ProfilePage() {
         setMe(meData);
         setCategories(Array.isArray(categoryItems) ? categoryItems : []);
 
-        try {
-          const p = await getMyProfile();
-          if (!active) return;
+        const p = await getMyProfile();
+        if (!active) return;
 
-          setProfile(p);
-          setCategoryId(String(p.category_id ?? ""));
+        setProfile(p);
+        const presetCategory = new URLSearchParams(window.location.search).get("category_id") || "";
+        if (p) {
+          setCategoryId(String(p.category_id ?? presetCategory));
           setFullName(p.full_name ?? "");
           setDescription(p.description ?? "");
           setServices(p.services ?? "");
           setPhone(p.phone ?? "");
           setCity(p.city ?? "");
           setSocialLinks(p.social_links ?? "");
-        } catch {
-          if (active) setProfile(null);
+        } else if (presetCategory) {
+          setCategoryId(presetCategory);
         }
       })
       .catch((err) => {
@@ -63,6 +66,7 @@ export default function ProfilePage() {
     };
   }, []);
 
+
   const onSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setError("");
@@ -74,6 +78,7 @@ export default function ProfilePage() {
     }
 
     try {
+      await acceptPersonalDataConsent();
       const saved = await upsertMyProfile({
         category_id: Number(categoryId),
         full_name: fullName.trim(),
@@ -82,6 +87,8 @@ export default function ProfilePage() {
         phone: phone.trim(),
         city: city.trim(),
         social_links: socialLinks.trim(),
+        avatar,
+        works,
       });
       setProfile(saved);
       setSuccess("Профиль сохранён и отправлен на модерацию");
@@ -115,7 +122,6 @@ export default function ProfilePage() {
     <section className="card authCard">
       <h1 className="h1">Профиль мастера</h1>
       <p className="muted">Аккаунт: {me.login} · роль: {me.role}</p>
-
       <div className="profileStatus">
         {profile ? (
           <>
@@ -157,6 +163,13 @@ export default function ProfilePage() {
 
         <label className="label" htmlFor="social">Соцсети</label>
         <input id="social" className="input" value={socialLinks} onChange={(e) => setSocialLinks(e.target.value)} placeholder="Можно оставить пустым, если заполнен телефон" />
+
+
+        <label className="label" htmlFor="avatar">Фото мастера (аватар)</label>
+        <input id="avatar" type="file" className="input" accept="image/*" onChange={(e) => setAvatar(e.target.files?.[0] ?? null)} />
+
+        <label className="label" htmlFor="works">Примеры работ</label>
+        <input id="works" type="file" className="input" accept="image/*" multiple onChange={(e) => setWorks(Array.from(e.target.files ?? []))} />
 
         <button type="submit" className="btn btnPrimary">Сохранить и отправить на модерацию</button>
       </form>

@@ -26,6 +26,7 @@ func RegisterRoutes(r *gin.Engine, db *gorm.DB) {
 	{
 		authGroup.POST("/register", auth.Register)
 		authGroup.POST("/login", auth.Login)
+		authGroup.POST("/logout", middleware.AuthMiddleware(), auth.Logout)
 		authGroup.GET("/me", middleware.AuthMiddleware(), auth.Me)
 	}
 
@@ -34,6 +35,9 @@ func RegisterRoutes(r *gin.Engine, db *gorm.DB) {
 	{
 		meGroup.GET("/profile", me.GetProfile)
 		meGroup.PUT("/profile", middleware.RequireRole(models.RoleUser), me.PutProfile)
+		meGroup.PUT("/password", me.PutPassword)
+		meGroup.PUT("/login", me.PutLogin)
+		meGroup.POST("/consents/personal-data", me.PostPersonalDataConsent)
 
 		meAds := meGroup.Group("/ads")
 		meAds.Use(middleware.RequireRole(models.RoleUser), middleware.EnsureApproved())
@@ -46,6 +50,7 @@ func RegisterRoutes(r *gin.Engine, db *gorm.DB) {
 	}
 
 	r.GET("/categories", categories.List)
+	r.GET("/category-groups", categories.ListGroups)
 	r.GET("/masters", publicHandlers.ListMasters)
 	r.GET("/masters/:id", publicHandlers.GetMaster)
 	r.GET("/masters/:id/ads", ads.PublicByMaster)
@@ -78,6 +83,8 @@ func RegisterRoutes(r *gin.Engine, db *gorm.DB) {
 		adminGroup.PATCH("/ads/:id/approve", ads.AdminApprove)
 		adminGroup.PATCH("/ads/:id/reject", ads.AdminReject)
 	}
+
+	r.Static("/uploads", "./uploads")
 
 	r.GET("/", func(c *gin.Context) {
 		c.JSON(200, gin.H{"status": "ok"})

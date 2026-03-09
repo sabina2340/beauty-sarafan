@@ -22,6 +22,8 @@ type MasterModerationItem struct {
 	CategoryID      uint    `json:"category_id"`
 	CategoryName    string  `json:"category_name"`
 	CategorySlug    string  `json:"category_slug"`
+	AvatarURL       string  `json:"avatar_url"`
+	Description     string  `json:"description"`
 }
 
 type RejectUserRequest struct {
@@ -43,7 +45,7 @@ func ListMasters(c *gin.Context) {
 	err := database.DB.Table("master_profiles mp").
 		Select(`u.id as user_id, u.login, u.role, mp.status, mp.rejection_reason,
 			mp.id as profile_id, mp.full_name, mp.city, mp.category_id,
-			c.name as category_name, c.slug as category_slug`).
+			mp.avatar_url, mp.description, c.name as category_name, c.slug as category_slug`).
 		Joins("JOIN users u ON u.id = mp.user_id").
 		Joins("LEFT JOIN categories c ON c.id = mp.category_id").
 		Where("mp.status = ?", status).

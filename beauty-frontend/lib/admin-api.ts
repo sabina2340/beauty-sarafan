@@ -12,6 +12,8 @@ export type AdminMaster = {
   category_id: number;
   category_name?: string;
   category_slug?: string;
+  avatar_url?: string;
+  description?: string;
 };
 
 export type AdminAd = {
@@ -82,7 +84,7 @@ export async function rejectUser(userId: number, reason: string) {
   return parseResponse(response);
 }
 
-export async function createCategory(payload: { name: string; slug: string; audience: "master" | "client" | "both" }) {
+export async function createCategory(payload: { name: string; slug: string; group_name: string; group_title: string; audience: "master" | "client" | "both"; is_business?: boolean }) {
   const response = await fetch(`${API_URL}/admin/categories`, {
     method: "POST",
     credentials: "include",
