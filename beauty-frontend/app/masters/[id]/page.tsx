@@ -42,15 +42,30 @@ export default async function MasterDetailPage({ params, searchParams }: Props) 
         </Link>
 
         <article className="card">
+          {master.avatar_url ? <img src={master.avatar_url} alt={master.full_name ?? "Аватар мастера"} style={{ width: "100%", maxWidth: 260, borderRadius: 16 }} /> : null}
           <h1>{master.full_name ?? master.login ?? "Без имени"}</h1>
           <p className="meta">Категория: {master.category_name ?? "Категория не указана"}</p>
           <p className="meta">Город: {master.city ?? "Город не указан"}</p>
+          <p className="meta">Статус: {master.verified ? "Проверен" : "Не проверен"}</p>
 
           <h2>Описание</h2>
           <p>{master.description ?? "Описание отсутствует"}</p>
 
           <h2>Услуги</h2>
           <p>{master.services ?? "Список услуг пока не добавлен"}</p>
+
+
+
+          <h2>Примеры работ</h2>
+          {master.work_images && master.work_images.length > 0 ? (
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 8 }}>
+              {master.work_images.map((imageUrl) => (
+                <img key={imageUrl} src={imageUrl} alt="Пример работы" style={{ width: "100%", borderRadius: 12 }} />
+              ))}
+            </div>
+          ) : (
+            <p>Примеры работ пока не загружены</p>
+          )}
 
           <h2>Контакты</h2>
           <p>Телефон: {master.phone ?? "не указан"}</p>

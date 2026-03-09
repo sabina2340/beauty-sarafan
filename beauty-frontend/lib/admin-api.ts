@@ -12,6 +12,8 @@ export type AdminMaster = {
   category_id: number;
   category_name?: string;
   category_slug?: string;
+  avatar_url?: string;
+  description?: string;
 };
 
 export type AdminAd = {
