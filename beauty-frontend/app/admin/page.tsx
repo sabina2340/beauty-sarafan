@@ -147,8 +147,15 @@ export default function AdminPage() {
           {masters.map((master) => (
             <div key={master.user_id} className="adminItem">
               <div>
+                {master.avatar_url ? <img src={master.avatar_url} alt={master.full_name || master.login} style={{ width: 64, height: 64, borderRadius: 12, objectFit: "cover", marginBottom: 8 }} /> : null}
                 <strong>{master.full_name || master.login}</strong> · {master.city || "—"}
                 <p className="muted">ID: {master.user_id} · role: {master.role} · status: {master.status}</p>
+                <p className="muted">{master.description || "Описание не заполнено"}</p>
+                <p className="muted">
+                  <a href="/profile">Открыть профиль в ЛК</a>
+                  {" · "}
+                  {master.status === "approved" ? <a href={`/masters/${master.user_id}`}>Открыть публичную карточку</a> : <span>Публичная карточка недоступна</span>}
+                </p>
               </div>
               <div className="adminActions">
                 <button className="btn btnPrimary" onClick={async () => { try { await approveUser(master.user_id); await loadMasters(); setOk("Пользователь одобрен"); } catch (e) { setFail(e); } }}>Одобрить</button>

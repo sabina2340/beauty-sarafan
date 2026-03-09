@@ -40,6 +40,8 @@ func InitDB() *gorm.DB {
 		&models.Category{},
 		&models.MasterProfile{},
 		&models.Advertisement{},
+		&models.MasterWorkImage{},
+		&models.AdImage{},
 		&models.Tariff{},
 		&models.Payment{},
 		&models.EquipmentItem{},

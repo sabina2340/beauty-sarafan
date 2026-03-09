@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { FormEvent, useEffect, useState } from "react";
-import { authMe, getMyProfile, upsertMyProfile, type AuthMe, type MyMasterProfile } from "@/lib/auth-api";
+import { acceptPersonalDataConsent, authMe, getMyProfile, upsertMyProfile, type AuthMe, type MyMasterProfile } from "@/lib/auth-api";
+import { clearBrandLogo, saveBrandLogo } from "@/lib/brand";
 
 type Category = { ID: number; Name: string };
 
@@ -21,6 +22,9 @@ export default function ProfilePage() {
   const [phone, setPhone] = useState("");
   const [city, setCity] = useState("");
   const [socialLinks, setSocialLinks] = useState("");
+  const [consentAccepted, setConsentAccepted] = useState(false);
+  const [avatar, setAvatar] = useState<File | null>(null);
+  const [works, setWorks] = useState<File[]>([]);
 
   useEffect(() => {
     let active = true;
@@ -63,10 +67,28 @@ export default function ProfilePage() {
     };
   }, []);
 
+
+  const onLogoUpload = async (file: File | null) => {
+    if (!file) return;
+    const dataUrl = await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result || ""));
+      reader.onerror = () => reject(new Error("Не удалось прочитать файл"));
+      reader.readAsDataURL(file);
+    });
+    saveBrandLogo(dataUrl);
+    setSuccess("Логотип сохранён в браузере");
+  };
+
   const onSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setError("");
     setSuccess("");
+
+    if (!consentAccepted) {
+      setError("Нужно согласие на обработку персональных данных");
+      return;
+    }
 
     if (!phone.trim() && !socialLinks.trim()) {
       setError("Укажите телефон или ссылку на соцсети");
@@ -74,6 +96,7 @@ export default function ProfilePage() {
     }
 
     try {
+      await acceptPersonalDataConsent();
       const saved = await upsertMyProfile({
         category_id: Number(categoryId),
         full_name: fullName.trim(),
@@ -82,6 +105,8 @@ export default function ProfilePage() {
         phone: phone.trim(),
         city: city.trim(),
         social_links: socialLinks.trim(),
+        avatar,
+        works,
       });
       setProfile(saved);
       setSuccess("Профиль сохранён и отправлен на модерацию");
@@ -115,6 +140,15 @@ export default function ProfilePage() {
     <section className="card authCard">
       <h1 className="h1">Профиль мастера</h1>
       <p className="muted">Аккаунт: {me.login} · роль: {me.role}</p>
+
+      <div className="card" style={{ marginBottom: 12 }}>
+        <strong>Бренд платформы</strong>
+        <p className="muted">Вы можете загрузить свой логотип для шапки и главной страницы.</p>
+        <input type="file" accept="image/*" className="input" onChange={(e) => onLogoUpload(e.target.files?.[0] ?? null)} />
+        <button type="button" className="btn btnGhost" onClick={() => { clearBrandLogo(); setSuccess("Логотип сброшен"); }}>
+          Сбросить логотип
+        </button>
+      </div>
 
       <div className="profileStatus">
         {profile ? (
@@ -157,6 +191,18 @@ export default function ProfilePage() {
 
         <label className="label" htmlFor="social">Соцсети</label>
         <input id="social" className="input" value={socialLinks} onChange={(e) => setSocialLinks(e.target.value)} placeholder="Можно оставить пустым, если заполнен телефон" />
+
+
+        <label className="label" htmlFor="avatar">Фото мастера (аватар)</label>
+        <input id="avatar" type="file" className="input" accept="image/*" onChange={(e) => setAvatar(e.target.files?.[0] ?? null)} />
+
+        <label className="label" htmlFor="works">Примеры работ</label>
+        <input id="works" type="file" className="input" accept="image/*" multiple onChange={(e) => setWorks(Array.from(e.target.files ?? []))} />
+
+        <label className="label" style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          <input type="checkbox" checked={consentAccepted} onChange={(e) => setConsentAccepted(e.target.checked)} />
+          Согласен(на) на обработку персональных данных
+        </label>
 
         <button type="submit" className="btn btnPrimary">Сохранить и отправить на модерацию</button>
       </form>

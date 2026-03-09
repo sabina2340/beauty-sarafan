@@ -4,10 +4,10 @@ import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
 
 export const metadata: Metadata = {
-  title: "Beauty Sarafan",
-  description: "Каталог мастеров красоты",
+  title: "Сарафан",
+  description: "Мобильный каталог бьюти-мастеров",
   openGraph: {
-    title: "Beauty Sarafan",
+    title: "Сарафан",
     description: "Найдите мастера в вашем городе",
     type: "website",
   },
