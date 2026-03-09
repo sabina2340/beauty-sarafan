@@ -31,7 +31,7 @@ export function MastersCatalogClient() {
 
     getMasters({ category: slug, city, q })
       .then((data) => {
-        if (!cancelled) setMasters(data);
+        if (!cancelled) setMasters(Array.isArray(data) ? data : []);
       })
       .catch((err: Error) => {
         if (!cancelled) setError(err.message);

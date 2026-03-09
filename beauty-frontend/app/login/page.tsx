@@ -29,31 +29,31 @@ export default function LoginPage() {
   };
 
   return (
-      <section className="card authCard">
-        <h1 className="h1">Вход</h1>
-        <p className="muted">Введите логин и пароль, чтобы продолжить.</p>
+    <section className="card authCard">
+      <h1 className="h1">Вход</h1>
+      <p className="muted">Введите логин и пароль, чтобы продолжить.</p>
 
-        <form className="authForm" onSubmit={onSubmit}>
-          <label className="label" htmlFor="login">
-            Логин
-          </label>
-          <input id="login" name="login" type="text" className="input" value={userLogin} onChange={(e) => setUserLogin(e.target.value)} required />
+      <form className="authForm" onSubmit={onSubmit}>
+        <label className="label" htmlFor="login">
+          Логин
+        </label>
+        <input id="login" name="login" type="text" className="input" value={userLogin} onChange={(e) => setUserLogin(e.target.value)} required />
 
-          <label className="label" htmlFor="password">
-            Пароль
-          </label>
-          <input id="password" name="password" type="password" className="input" value={password} onChange={(e) => setPassword(e.target.value)} required />
+        <label className="label" htmlFor="password">
+          Пароль
+        </label>
+        <input id="password" name="password" type="password" className="input" value={password} onChange={(e) => setPassword(e.target.value)} required />
 
-          <button type="submit" className="btn btnPrimary authSubmit" disabled={loading}>
-            {loading ? "Входим..." : "Войти"}
-          </button>
-        </form>
+        <button type="submit" className="btn btnPrimary authSubmit" disabled={loading}>
+          {loading ? "Входим..." : "Войти"}
+        </button>
+      </form>
 
-        {error ? <p className="adminError authHint">{error}</p> : null}
+      {error ? <p className="adminError authHint">{error}</p> : null}
 
-        <p className="muted authHint">
-          Нет аккаунта? <Link href="/register">Зарегистрироваться</Link>
-        </p>
-      </section>
+      <p className="muted authHint">
+        Нет аккаунта? <Link href="/register">Зарегистрироваться</Link>
+      </p>
+    </section>
   );
 }
