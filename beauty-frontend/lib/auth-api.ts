@@ -14,8 +14,10 @@ export type MyMasterProfile = {
   phone: string;
   city: string;
   social_links: string;
+  avatar_url: string;
   status: "pending" | "approved" | "rejected";
   rejection_reason?: string | null;
+  work_images?: { image_url: string; sort_order: number }[];
 };
 
 const API_URL = "/api";
@@ -46,6 +48,15 @@ export async function login(payload: { login: string; password: string }) {
   return parseJson<{ message: string; role: string; status: string }>(response);
 }
 
+
+export async function logout() {
+  const response = await fetch(`${API_URL}/auth/logout`, {
+    method: "POST",
+    credentials: "include",
+  });
+  return parseJson<{ message: string }>(response);
+}
+
 export async function register(payload: { login: string; password: string }) {
   const response = await fetch(`${API_URL}/auth/register`, {
     method: "POST",
@@ -56,12 +67,21 @@ export async function register(payload: { login: string; password: string }) {
   return parseJson<{ message: string; user_id: number; status: string }>(response);
 }
 
-export async function getMyProfile() {
+export async function getMyProfile(): Promise<MyMasterProfile | null> {
   const response = await fetch(`${API_URL}/me/profile`, {
     credentials: "include",
     cache: "no-store",
   });
+  if (response.status === 404) return null;
   return parseJson<MyMasterProfile>(response);
+}
+
+export async function acceptPersonalDataConsent() {
+  const response = await fetch(`${API_URL}/me/consents/personal-data`, {
+    method: "POST",
+    credentials: "include",
+  });
+  return parseJson<{ message: string }>(response);
 }
 
 export async function upsertMyProfile(payload: {
@@ -72,12 +92,29 @@ export async function upsertMyProfile(payload: {
   phone: string;
   city: string;
   social_links: string;
+  avatar?: File | null;
+  works?: File[];
 }) {
+  const formData = new FormData();
+  formData.append("category_id", String(payload.category_id));
+  formData.append("full_name", payload.full_name);
+  formData.append("description", payload.description);
+  formData.append("services", payload.services);
+  formData.append("phone", payload.phone);
+  formData.append("city", payload.city);
+  formData.append("social_links", payload.social_links);
+
+  if (payload.avatar) {
+    formData.append("avatar", payload.avatar);
+  }
+  for (const file of payload.works || []) {
+    formData.append("works[]", file);
+  }
+
   const response = await fetch(`${API_URL}/me/profile`, {
     method: "PUT",
     credentials: "include",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload),
+    body: formData,
   });
   return parseJson<MyMasterProfile>(response);
 }

@@ -12,6 +12,7 @@ type MasterProfile struct {
 	Phone           string    `gorm:"type:varchar(50)"`
 	City            string    `gorm:"type:varchar(100)"`
 	SocialLinks     string    `gorm:"type:text"`
+	AvatarURL       string    `gorm:"type:text"`
 	Status          string    `gorm:"type:varchar(20);default:pending"`
 	RejectionReason *string   `gorm:"type:text"`
 	CreatedAt       time.Time `gorm:"autoCreateTime"`

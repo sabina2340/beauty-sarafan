@@ -3,20 +3,27 @@ package me
 import (
 	"beauty-sarafan/internal/database"
 	"beauty-sarafan/internal/models"
+	"beauty-sarafan/internal/storage"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"github.com/gin-gonic/gin"
 )
 
 type ProfileUpsertRequest struct {
-	CategoryID  uint   `json:"category_id" binding:"required"`
-	FullName    string `json:"full_name" binding:"required"`
-	Description string `json:"description" binding:"required"`
-	Services    string `json:"services" binding:"required"`
-	Phone       string `json:"phone"`
-	City        string `json:"city" binding:"required"`
-	SocialLinks string `json:"social_links"`
+	CategoryID  uint
+	FullName    string
+	Description string
+	Services    string
+	Phone       string
+	City        string
+	SocialLinks string
+}
+
+type ProfileResponse struct {
+	models.MasterProfile
+	WorkImages []models.MasterWorkImage `json:"work_images"`
 }
 
 func validateProfileUpsert(req *ProfileUpsertRequest) string {
@@ -48,14 +55,18 @@ func validateProfileUpsert(req *ProfileUpsertRequest) string {
 	return ""
 }
 
-// GetProfile godoc
-// @Summary Профиль текущего мастера
-// @Tags me
-// @Produce json
-// @Success 200 {object} models.MasterProfile
-// @Failure 401 {object} map[string]string
-// @Failure 404 {object} map[string]string
-// @Router /me/profile [get]
+func hasPersonalDataConsent(userID uint) bool {
+	var consent models.PersonalDataConsent
+	err := database.DB.Where("user_id = ?", userID).First(&consent).Error
+	return err == nil
+}
+
+func loadProfileResponse(profile models.MasterProfile) (ProfileResponse, error) {
+	var works []models.MasterWorkImage
+	err := database.DB.Where("master_profile_id = ?", profile.ID).Order("sort_order asc, id asc").Find(&works).Error
+	return ProfileResponse{MasterProfile: profile, WorkImages: works}, err
+}
+
 func GetProfile(c *gin.Context) {
 	userID := c.GetUint("user_id")
 
@@ -65,28 +76,31 @@ func GetProfile(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, profile)
+	resp, err := loadProfileResponse(profile)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to load work images"})
+		return
+	}
+
+	c.JSON(http.StatusOK, resp)
 }
 
-// PutProfile godoc
-// @Summary Создание/обновление профиля мастера
-// @Description Upsert профиля. После изменений отправляет пользователя на повторную модерацию (status=pending)
-// @Tags me
-// @Accept json
-// @Produce json
-// @Param data body ProfileUpsertRequest true "Данные профиля"
-// @Success 200 {object} models.MasterProfile
-// @Failure 400 {object} map[string]string
-// @Failure 401 {object} map[string]string
-// @Failure 500 {object} map[string]string
-// @Router /me/profile [put]
 func PutProfile(c *gin.Context) {
 	userID := c.GetUint("user_id")
-
-	var req ProfileUpsertRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request data"})
+	if !hasPersonalDataConsent(userID) {
+		c.JSON(http.StatusForbidden, gin.H{"error": "personal data consent is required"})
 		return
+	}
+
+	categoryID, _ := strconv.ParseUint(c.PostForm("category_id"), 10, 64)
+	req := ProfileUpsertRequest{
+		CategoryID:  uint(categoryID),
+		FullName:    c.PostForm("full_name"),
+		Description: c.PostForm("description"),
+		Services:    c.PostForm("services"),
+		Phone:       c.PostForm("phone"),
+		City:        c.PostForm("city"),
+		SocialLinks: c.PostForm("social_links"),
 	}
 
 	if validationError := validateProfileUpsert(&req); validationError != "" {
@@ -94,40 +108,64 @@ func PutProfile(c *gin.Context) {
 		return
 	}
 
-	var profile models.MasterProfile
-	err := database.DB.Where("user_id = ?", userID).First(&profile).Error
-	if err != nil {
-		profile = models.MasterProfile{
-			UserID:          userID,
-			CategoryID:      req.CategoryID,
-			FullName:        req.FullName,
-			Description:     req.Description,
-			Services:        req.Services,
-			Phone:           req.Phone,
-			City:            req.City,
-			SocialLinks:     req.SocialLinks,
-			Status:          models.StatusPending,
-			RejectionReason: nil,
-		}
+	uploader := storage.NewService()
+	avatarHeader, _ := c.FormFile("avatar")
 
+	var profile models.MasterProfile
+	if err := database.DB.Where("user_id = ?", userID).First(&profile).Error; err != nil {
+		profile = models.MasterProfile{UserID: userID}
+	}
+
+	if avatarHeader != nil {
+		avatarURL, err := uploader.UploadImage(avatarHeader, "masters/avatar")
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to upload avatar"})
+			return
+		}
+		profile.AvatarURL = avatarURL
+	}
+
+	profile.CategoryID = req.CategoryID
+	profile.FullName = req.FullName
+	profile.Description = req.Description
+	profile.Services = req.Services
+	profile.Phone = req.Phone
+	profile.City = req.City
+	profile.SocialLinks = req.SocialLinks
+	profile.Status = models.StatusPending
+	profile.RejectionReason = nil
+
+	if profile.ID == 0 {
 		if err := database.DB.Create(&profile).Error; err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create profile"})
 			return
 		}
 	} else {
-		profile.CategoryID = req.CategoryID
-		profile.FullName = req.FullName
-		profile.Description = req.Description
-		profile.Services = req.Services
-		profile.Phone = req.Phone
-		profile.City = req.City
-		profile.SocialLinks = req.SocialLinks
-		profile.Status = models.StatusPending
-		profile.RejectionReason = nil
-
 		if err := database.DB.Save(&profile).Error; err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to update profile"})
 			return
+		}
+	}
+
+	form, err := c.MultipartForm()
+	if err == nil && form != nil {
+		if files, ok := form.File["works[]"]; ok && len(files) > 0 {
+			if err := database.DB.Where("master_profile_id = ?", profile.ID).Delete(&models.MasterWorkImage{}).Error; err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to clear old work images"})
+				return
+			}
+			for i, fileHeader := range files {
+				imageURL, uploadErr := uploader.UploadImage(fileHeader, "masters/works")
+				if uploadErr != nil {
+					c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to upload work image"})
+					return
+				}
+				item := models.MasterWorkImage{MasterProfileID: profile.ID, ImageURL: imageURL, SortOrder: i}
+				if createErr := database.DB.Create(&item).Error; createErr != nil {
+					c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to save work image"})
+					return
+				}
+			}
 		}
 	}
 
@@ -140,5 +178,10 @@ func PutProfile(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, profile)
+	resp, err := loadProfileResponse(profile)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to load work images"})
+		return
+	}
+	c.JSON(http.StatusOK, resp)
 }
