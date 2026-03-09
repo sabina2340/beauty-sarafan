@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { authMe, type AuthMe } from "@/lib/auth-api";
+import { authMe, logout, type AuthMe } from "@/lib/auth-api";
 import { BrandLogo } from "@/components/BrandLogo";
 
 export function SiteHeader() {
@@ -19,6 +19,17 @@ export function SiteHeader() {
   }, [pathname]);
 
   const canModerate = me?.role === "admin" || me?.role === "moderator";
+
+  const onLogout = async () => {
+    try {
+      await logout();
+      setMe(null);
+      setMenuOpen(false);
+      router.push("/login");
+      router.refresh();
+    } catch {}
+  };
+
   const links = [
     { href: "/", label: "Главная" },
     { href: "/masters", label: "Каталог" },
@@ -41,6 +52,7 @@ export function SiteHeader() {
           {links.map((link) => (
             <Link key={link.href} href={link.href} onClick={() => setMenuOpen(false)}>{link.label}</Link>
           ))}
+          {me ? <button type="button" className="menuBtn" onClick={onLogout}>Выйти</button> : null}
         </nav>
       ) : null}
     </header>

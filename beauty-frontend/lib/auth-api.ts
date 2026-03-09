@@ -48,6 +48,15 @@ export async function login(payload: { login: string; password: string }) {
   return parseJson<{ message: string; role: string; status: string }>(response);
 }
 
+
+export async function logout() {
+  const response = await fetch(`${API_URL}/auth/logout`, {
+    method: "POST",
+    credentials: "include",
+  });
+  return parseJson<{ message: string }>(response);
+}
+
 export async function register(payload: { login: string; password: string }) {
   const response = await fetch(`${API_URL}/auth/register`, {
     method: "POST",
@@ -58,11 +67,12 @@ export async function register(payload: { login: string; password: string }) {
   return parseJson<{ message: string; user_id: number; status: string }>(response);
 }
 
-export async function getMyProfile() {
+export async function getMyProfile(): Promise<MyMasterProfile | null> {
   const response = await fetch(`${API_URL}/me/profile`, {
     credentials: "include",
     cache: "no-store",
   });
+  if (response.status === 404) return null;
   return parseJson<MyMasterProfile>(response);
 }
 
