@@ -2,48 +2,39 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import type { Category } from "./page";
+import { useRouter } from "next/navigation";
+import { authMe } from "@/lib/auth-api";
+import type { CategoryGroup } from "./page";
 
 type Props = {
-  masterCategories: Category[];
-  clientCategories: Category[];
+  groups: CategoryGroup[];
 };
 
 type Mode = "offer" | "seek" | "growth";
 
-type Group = { title: string; items: string[] };
-
-const SERVICE_GROUPS: Group[] = [
-  { title: "Красота и здоровье", items: ["косметология", "массаж", "эпиляция", "наращивание ресниц", "бровист", "татуаж", "маникюр и педикюр", "парикмахер", "визажист"] },
-  { title: "Домашняя помощь", items: ["няни", "сиделки", "клининг", "муж на час"] },
-  { title: "Туризм", items: ["тур агент"] },
-  { title: "Образование", items: ["репетитор", "учитель"] },
-  { title: "Фитнес и спорт", items: ["тренер (инструктор)"] },
-  { title: "Психология", items: ["психолог", "коуч"] },
-  { title: "Дизайн. Интерьер", items: ["мебель", "дизайн"] },
-  { title: "Животные", items: ["ветеринарная помощь", "грумминг", "передержка"] },
-];
-
-const GROWTH_GROUPS: Group[] = [
-  { title: "Ищу", items: ["обучение", "оборудование", "недвижимость", "сотрудников", "юридические услуги", "бухгалтерские услуги", "маркетинг", "консалтинг"] },
-  { title: "Предлагаю", items: ["обучение", "оборудование", "недвижимость", "юридические услуги", "бухгалтерские услуги", "маркетинг", "консалтинг"] },
-];
-
-export function RoleCategoryPicker({ masterCategories, clientCategories }: Props) {
+export function RoleCategoryPicker({ groups }: Props) {
+  const router = useRouter();
   const [mode, setMode] = useState<Mode>("offer");
 
-  const dynamicCats = useMemo(() => {
-    const base = mode === "offer" ? masterCategories : clientCategories;
-    return base.slice(0, 10);
-  }, [mode, masterCategories, clientCategories]);
+  const shownGroups = useMemo(() => {
+    if (mode === "growth") return groups.filter((g) => g.is_business);
+    return groups.filter((g) => !g.is_business);
+  }, [groups, mode]);
 
-  const groups = mode === "growth" ? GROWTH_GROUPS : SERVICE_GROUPS;
+  const onOfferClick = async (categoryId: number) => {
+    try {
+      await authMe();
+      router.push(`/profile?category_id=${categoryId}`);
+    } catch {
+      router.push(`/register?category_id=${categoryId}`);
+    }
+  };
 
   return (
     <div className="homeBlocks">
       <div className="homeIntro">
         <h1 className="h1">Приветствуем!</h1>
-        <p className="lead">Сарафан — это удобная онлайн-платформа, которая объединяет мастеров и клиентов.</p>
+        <p className="lead">Сарафан — это онлайн-платформа специалистов и клиентов.</p>
       </div>
 
       <div className="roleButtons">
@@ -52,26 +43,17 @@ export function RoleCategoryPicker({ masterCategories, clientCategories }: Props
         <button type="button" className={`btn ${mode === "growth" ? "btnSecondary" : "btnGhost"}`} onClick={() => setMode("growth")}>✅ Развитие специалистов и бизнеса</button>
       </div>
 
-      {dynamicCats.length > 0 && mode !== "growth" ? (
-        <div>
-          <p className="muted center">Категории из базы:</p>
-          <div className="grid2">
-            {dynamicCats.map((cat, i) => (
-              <Link key={cat.id} href={`/masters?slug=${encodeURIComponent(cat.slug)}`} className={`chip ${["catBlue", "catPurple", "catOrange"][i % 3]}`}>
-                {cat.name}
-              </Link>
-            ))}
-          </div>
-        </div>
-      ) : null}
-
       <div className="manualGroups">
-        {groups.map((group) => (
-          <section key={group.title} className="groupCard">
-            <h3>{group.title}</h3>
+        {shownGroups.map((group) => (
+          <section key={group.group_name} className="groupCard">
+            <h3>{group.group_title}</h3>
             <div className="servicesChips">
               {group.items.map((item) => (
-                <Link key={item} href={`/masters?q=${encodeURIComponent(item)}`} className="serviceChip">{item}</Link>
+                mode === "offer" ? (
+                  <button key={item.id} type="button" className="serviceChip serviceChipBtn" onClick={() => onOfferClick(item.id)}>{item.name}</button>
+                ) : (
+                  <Link key={item.id} href={`/masters?slug=${encodeURIComponent(item.slug)}`} className="serviceChip">{item.name}</Link>
+                )
               ))}
             </div>
           </section>
@@ -79,7 +61,7 @@ export function RoleCategoryPicker({ masterCategories, clientCategories }: Props
       </div>
 
       <div className="ctaRow">
-        <Link href="/masters" className="btn btnPrimary">Поиск</Link>
+        <Link href="/masters" className="btn btnPrimary">Перейти в каталог</Link>
       </div>
     </div>
   );

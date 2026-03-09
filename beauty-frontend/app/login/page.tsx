@@ -19,7 +19,8 @@ export default function LoginPage() {
 
     try {
       await login({ login: userLogin, password });
-      router.push("/profile");
+      const categoryID = new URLSearchParams(window.location.search).get("category_id");
+      router.push(categoryID ? `/profile?category_id=${categoryID}` : "/profile");
       router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Ошибка входа");

@@ -32,14 +32,13 @@ func main() {
 	password := hashPassword("123456") // пароль для всех мастеров
 
 	cat := map[string]uint{
-		"lashmaker":         mustCategoryID("lashmaker"),
-		"nail-master":       mustCategoryID("nail-master"),
+		"lash-extension":    mustCategoryID("lash-extension"),
+		"manicure-pedicure": mustCategoryID("manicure-pedicure"),
 		"hairdresser":       mustCategoryID("hairdresser"),
-		"cosmetologist":     mustCategoryID("cosmetologist"),
-		"massage-therapist": mustCategoryID("massage-therapist"),
+		"cosmetology":       mustCategoryID("cosmetology"),
+		"massage":           mustCategoryID("massage"),
 		"brow-master":       mustCategoryID("brow-master"),
 		"nanny":             mustCategoryID("nanny"),
-		"barber":            mustCategoryID("barber"),
 	}
 
 	type SeedMaster struct {
@@ -54,14 +53,14 @@ func main() {
 	}
 
 	masters := []SeedMaster{
-		{"lash_anna", "Анна Лашмейкер", "Москва", cat["lashmaker"], "Наращивание ресниц, ламинирование. 5 лет опыта.", "Классика; 2D/3D; Ламинирование", "+79990000001", "tg:@lash_anna"},
-		{"nails_kate", "Екатерина Маникюр", "Москва", cat["nail-master"], "Аккуратный маникюр, стерильность.", "Маникюр; Педикюр; Гель-лак", "+79990000002", "ig:@nails_kate"},
+		{"lash_anna", "Анна Лашмейкер", "Москва", cat["lash-extension"], "Наращивание ресниц, ламинирование. 5 лет опыта.", "Классика; 2D/3D; Ламинирование", "+79990000001", "tg:@lash_anna"},
+		{"nails_kate", "Екатерина Маникюр", "Москва", cat["manicure-pedicure"], "Аккуратный маникюр, стерильность.", "Маникюр; Педикюр; Гель-лак", "+79990000002", "ig:@nails_kate"},
 		{"hair_mila", "Мила Парикмахер", "СПб", cat["hairdresser"], "Стрижки и окрашивания.", "Стрижка; Окрашивание; Укладка", "+79990000003", "vk:hair_mila"},
-		{"cosm_olga", "Ольга Косметолог", "Казань", cat["cosmetologist"], "Уходовые процедуры.", "Чистка; Пилинг; Уход", "+79990000004", "tg:@cosm_olga"},
-		{"mass_ivan", "Иван Массажист", "Екатеринбург", cat["massage-therapist"], "Классический и спортивный массаж.", "Классический; Спортивный", "+79990000005", "tg:@mass_ivan"},
+		{"cosm_olga", "Ольга Косметолог", "Казань", cat["cosmetology"], "Уходовые процедуры.", "Чистка; Пилинг; Уход", "+79990000004", "tg:@cosm_olga"},
+		{"mass_ivan", "Иван Массажист", "Екатеринбург", cat["massage"], "Классический и спортивный массаж.", "Классический; Спортивный", "+79990000005", "tg:@mass_ivan"},
 		{"brow_nina", "Нина Бровист", "Новосибирск", cat["brow-master"], "Архитектура бровей.", "Коррекция; Окрашивание", "+79990000006", "ig:@brow_nina"},
 		{"nanny_svet", "Светлана Няня", "Москва", cat["nanny"], "Присмотр за детьми.", "Почасово; Полный день", "+79990000007", "tg:@nanny_svet"},
-		{"barber_tim", "Тимур Барбер", "Краснодар", cat["barber"], "Мужские стрижки.", "Стрижка; Борода", "+79990000008", "vk:barber_tim"},
+		{"barber_tim", "Тимур Барбер", "Краснодар", cat["hairdresser"], "Мужские стрижки.", "Стрижка; Борода", "+79990000008", "vk:barber_tim"},
 	}
 
 	for _, m := range masters {

@@ -2,34 +2,32 @@ import type { Metadata } from "next";
 import { RoleCategoryPicker } from "./role-category-picker";
 import { BrandLogo } from "@/components/BrandLogo";
 
-export const metadata: Metadata = {
-  title: "Сарафан",
-  description: "Мобильная платформа-каталог бьюти-мастеров",
-};
-
-type CategoryApi = {
-  ID: number;
-  Name: string;
-  Slug: string;
-  Audience: "master" | "client" | "both";
-};
-
-export type Category = {
+type CategoryItem = {
   id: number;
   name: string;
   slug: string;
-  audience: "master" | "client" | "both";
 };
 
-async function getCategories(audience: "master" | "client") {
-  const res = await fetch(`http://localhost:8080/categories?audience=${audience}`, { cache: "no-store" });
+export type CategoryGroup = {
+  group_name: string;
+  group_title: string;
+  is_business: boolean;
+  items: CategoryItem[];
+};
+
+export const metadata: Metadata = {
+  title: "Сарафан",
+  description: "Мобильная платформа-каталог специалистов",
+};
+
+async function getCategoryGroups() {
+  const res = await fetch("http://localhost:8080/category-groups", { cache: "no-store" });
   if (!res.ok) return [];
-  const data = (await res.json()) as CategoryApi[];
-  return data.map((c) => ({ id: c.ID, name: c.Name, slug: c.Slug, audience: c.Audience })) as Category[];
+  return (await res.json()) as CategoryGroup[];
 }
 
 export default async function HomePage() {
-  const [masterCategories, clientCategories] = await Promise.all([getCategories("master"), getCategories("client")]);
+  const groups = await getCategoryGroups();
 
   return (
     <section className="homePage">
@@ -37,7 +35,7 @@ export default async function HomePage() {
         <BrandLogo className="homeLogo" />
       </div>
       <div className="homeContent card">
-        <RoleCategoryPicker masterCategories={masterCategories} clientCategories={clientCategories} />
+        <RoleCategoryPicker groups={groups} />
       </div>
     </section>
   );

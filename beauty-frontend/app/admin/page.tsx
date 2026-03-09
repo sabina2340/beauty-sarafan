@@ -29,6 +29,9 @@ export default function AdminPage() {
   const [categoryName, setCategoryName] = useState("");
   const [categorySlug, setCategorySlug] = useState("");
   const [categoryAudience, setCategoryAudience] = useState<"master" | "client" | "both">("both");
+  const [categoryGroupName, setCategoryGroupName] = useState("");
+  const [categoryGroupTitle, setCategoryGroupTitle] = useState("");
+  const [categoryBusiness, setCategoryBusiness] = useState(false);
 
   const statusOptions = useMemo(() => ["pending", "approved", "rejected"] as const, []);
 
@@ -76,11 +79,14 @@ export default function AdminPage() {
   const onCreateCategory = async (e: FormEvent) => {
     e.preventDefault();
     try {
-      await createCategory({ name: categoryName, slug: categorySlug, audience: categoryAudience });
+      await createCategory({ name: categoryName, slug: categorySlug, group_name: categoryGroupName, group_title: categoryGroupTitle, audience: categoryAudience, is_business: categoryBusiness });
       setOk("Категория создана");
       setCategoryName("");
       setCategorySlug("");
       setCategoryAudience("both");
+      setCategoryGroupName("");
+      setCategoryGroupTitle("");
+      setCategoryBusiness(false);
     } catch (err) {
       setFail(err);
     }
@@ -113,6 +119,18 @@ export default function AdminPage() {
             <label className="label" htmlFor="category-slug">Slug</label>
             <input id="category-slug" className="input" value={categorySlug} onChange={(e) => setCategorySlug(e.target.value)} required />
 
+
+
+            <label className="label" htmlFor="category-group-name">Group name</label>
+            <input id="category-group-name" className="input" value={categoryGroupName} onChange={(e) => setCategoryGroupName(e.target.value)} required />
+
+            <label className="label" htmlFor="category-group-title">Group title</label>
+            <input id="category-group-title" className="input" value={categoryGroupTitle} onChange={(e) => setCategoryGroupTitle(e.target.value)} required />
+
+            <label className="label" style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <input type="checkbox" checked={categoryBusiness} onChange={(e) => setCategoryBusiness(e.target.checked)} />
+              Бизнес-категория
+            </label>
             <label className="label" htmlFor="category-audience">Аудитория</label>
             <select
               id="category-audience"

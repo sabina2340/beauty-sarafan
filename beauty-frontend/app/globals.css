@@ -91,3 +91,35 @@ body { margin: 0; font-family: Inter, system-ui, Arial, sans-serif; background: 
   .masterTop { grid-template-columns: 170px 1fr; }
   .masterAvatar { width: 170px; height: 170px; }
 }
+
+.menuBtn {
+  border: 0;
+  background: #fff;
+  border-radius: 12px;
+  padding: 10px 12px;
+  text-align: left;
+  font-weight: 700;
+}
+
+.manualGroups {
+  display: grid;
+  gap: 12px;
+}
+
+.groupCard {
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 12px;
+  background: #fff;
+}
+
+.groupCard h3 {
+  margin: 0 0 10px;
+  font-size: 18px;
+}
+
+.serviceChipBtn {
+  cursor: pointer;
+  font-size: 14px;
+  background: #f8fdff;
+}

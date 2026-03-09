@@ -52,6 +52,7 @@ func InitDB() *gorm.DB {
 	}
 
 	seedAdmin(db)
+	seedCategories(db)
 
 	DB = db
 	return db
@@ -89,5 +90,66 @@ func seedAdmin(db *gorm.DB) {
 
 	if err := db.Create(&admin).Error; err != nil {
 		log.Printf("admin seed create error: %v", err)
+	}
+}
+
+type seedCategory struct {
+	Name       string
+	Slug       string
+	GroupName  string
+	GroupTitle string
+	Audience   string
+	IsBusiness bool
+}
+
+func seedCategories(db *gorm.DB) {
+	items := []seedCategory{
+		{"Косметология", "cosmetology", "beauty-health", "Красота и здоровье", "both", false},
+		{"Массаж", "massage", "beauty-health", "Красота и здоровье", "both", false},
+		{"Эпиляция", "epilation", "beauty-health", "Красота и здоровье", "both", false},
+		{"Наращивание ресниц", "lash-extension", "beauty-health", "Красота и здоровье", "both", false},
+		{"Бровист", "brow-master", "beauty-health", "Красота и здоровье", "both", false},
+		{"Татуаж", "permanent-makeup", "beauty-health", "Красота и здоровье", "both", false},
+		{"Маникюр и педикюр", "manicure-pedicure", "beauty-health", "Красота и здоровье", "both", false},
+		{"Парикмахер", "hairdresser", "beauty-health", "Красота и здоровье", "both", false},
+		{"Визажист", "makeup-artist", "beauty-health", "Красота и здоровье", "both", false},
+		{"Няня", "nanny", "home-help", "Домашняя помощь", "both", false},
+		{"Сиделка", "caregiver", "home-help", "Домашняя помощь", "both", false},
+		{"Клининг", "cleaning", "home-help", "Домашняя помощь", "both", false},
+		{"Муж на час", "handyman", "home-help", "Домашняя помощь", "both", false},
+		{"Тур агент", "travel-agent", "tourism", "Туризм", "both", false},
+		{"Репетитор", "tutor", "education", "Образование", "both", false},
+		{"Учитель", "teacher", "education", "Образование", "both", false},
+		{"Тренер", "trainer", "fitness-sport", "Фитнес и спорт", "both", false},
+		{"Инструктор", "instructor", "fitness-sport", "Фитнес и спорт", "both", false},
+		{"Психолог", "psychologist", "psychology", "Психология", "both", false},
+		{"Коуч", "coach", "psychology", "Психология", "both", false},
+		{"Мебель", "furniture", "design-interior", "Дизайн и интерьер", "both", false},
+		{"Дизайн", "design", "design-interior", "Дизайн и интерьер", "both", false},
+		{"Ветеринарная помощь", "veterinary-help", "pets", "Животные", "both", false},
+		{"Груминг", "grooming", "pets", "Животные", "both", false},
+		{"Передержка", "pet-boarding", "pets", "Животные", "both", false},
+		{"Обучение", "business-training", "business-growth", "Развитие специалистов и бизнеса", "both", true},
+		{"Оборудование", "equipment", "business-growth", "Развитие специалистов и бизнеса", "both", true},
+		{"Недвижимость", "real-estate", "business-growth", "Развитие специалистов и бизнеса", "both", true},
+		{"Сотрудники", "staff", "business-growth", "Развитие специалистов и бизнеса", "both", true},
+		{"Юридические услуги", "legal-services", "business-growth", "Развитие специалистов и бизнеса", "both", true},
+		{"Бухгалтерские услуги", "accounting-services", "business-growth", "Развитие специалистов и бизнеса", "both", true},
+		{"Маркетинг", "marketing", "business-growth", "Развитие специалистов и бизнеса", "both", true},
+		{"Консалтинг", "consulting", "business-growth", "Развитие специалистов и бизнеса", "both", true},
+	}
+
+	for _, item := range items {
+		category := models.Category{
+			Name:       item.Name,
+			Slug:       item.Slug,
+			GroupName:  item.GroupName,
+			GroupTitle: item.GroupTitle,
+			Audience:   item.Audience,
+			IsBusiness: item.IsBusiness,
+		}
+		if err := db.Where("slug = ?", item.Slug).Assign(category).FirstOrCreate(&category).Error; err != nil {
+			log.Printf("category seed error (%s): %v", item.Slug, err)
+		}
 	}
 }

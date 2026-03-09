@@ -41,14 +41,17 @@ export default function ProfilePage() {
         if (!active) return;
 
         setProfile(p);
+        const presetCategory = new URLSearchParams(window.location.search).get("category_id") || "";
         if (p) {
-          setCategoryId(String(p.category_id ?? ""));
+          setCategoryId(String(p.category_id ?? presetCategory));
           setFullName(p.full_name ?? "");
           setDescription(p.description ?? "");
           setServices(p.services ?? "");
           setPhone(p.phone ?? "");
           setCity(p.city ?? "");
           setSocialLinks(p.social_links ?? "");
+        } else if (presetCategory) {
+          setCategoryId(presetCategory);
         }
       })
       .catch((err) => {

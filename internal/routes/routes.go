@@ -50,6 +50,7 @@ func RegisterRoutes(r *gin.Engine, db *gorm.DB) {
 	}
 
 	r.GET("/categories", categories.List)
+	r.GET("/category-groups", categories.ListGroups)
 	r.GET("/masters", publicHandlers.ListMasters)
 	r.GET("/masters/:id", publicHandlers.GetMaster)
 	r.GET("/masters/:id/ads", ads.PublicByMaster)
