@@ -2,51 +2,47 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { authMe, type AuthMe } from "@/lib/auth-api";
+import { BrandLogo } from "@/components/BrandLogo";
 
 export function SiteHeader() {
   const [me, setMe] = useState<AuthMe | null>(null);
+  const [menuOpen, setMenuOpen] = useState(false);
   const pathname = usePathname();
+  const router = useRouter();
 
   useEffect(() => {
     let active = true;
-
-    authMe()
-      .then((data) => {
-        if (active) setMe(data);
-      })
-      .catch(() => {
-        if (active) setMe(null);
-      });
-
-    return () => {
-      active = false;
-    };
+    authMe().then((data) => active && setMe(data)).catch(() => active && setMe(null));
+    return () => { active = false; };
   }, [pathname]);
 
   const canModerate = me?.role === "admin" || me?.role === "moderator";
+  const links = [
+    { href: "/", label: "Главная" },
+    { href: "/masters", label: "Каталог" },
+    ...(canModerate ? [{ href: "/admin", label: "Админ" }] : []),
+    ...(me ? [{ href: "/profile", label: "Личный кабинет" }] : [{ href: "/login", label: "Вход" }, { href: "/register", label: "Регистрация" }]),
+  ];
 
   return (
     <header className="siteHeader">
-      <div className="container navWrap">
-        <Link href="/" className="brand" aria-label="Beauty Sarafan home">
-          Beauty Sarafan
+      <div className="container topBar">
+        <button type="button" className="iconBtn" onClick={() => router.back()} aria-label="Назад">←</button>
+        <Link href="/" className="brand" aria-label="Сарафан">
+          <BrandLogo className="brandLogo" />
+          <span>САРАФАН</span>
         </Link>
-        <nav className="nav" aria-label="Main navigation">
-          <Link href="/">Главная</Link>
-          <Link href="/masters">Мастера</Link>
-          {canModerate ? <Link href="/admin">Админ</Link> : null}
-          {me ? (
-            <Link href="/profile">Профиль</Link>
-          ) : (
-            <>
-              <Link href="/login">Вход</Link>
-              <Link href="/register">Регистрация</Link>
-            </>
-          )}
-        </nav>
+        <button type="button" className="iconBtn" onClick={() => setMenuOpen((v) => !v)} aria-label="Меню">⋮</button>
       </div>
+      {menuOpen ? (
+        <nav className="mobileMenu">
+          {links.map((link) => (
+            <Link key={link.href} href={link.href} onClick={() => setMenuOpen(false)}>{link.label}</Link>
+          ))}
+        </nav>
+      ) : null}
     </header>
   );
 }

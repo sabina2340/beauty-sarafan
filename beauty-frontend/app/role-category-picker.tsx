@@ -1,76 +1,41 @@
 "use client";
 
-import { useMemo, useState } from "react";
 import Link from "next/link";
 import type { Category } from "./page";
 
 type Props = {
-    masterCategories: Category[];
-    clientCategories: Category[];
+  masterCategories: Category[];
+  clientCategories: Category[];
 };
 
-type Role = "master" | "client";
+const palette = ["catBlue", "catPurple", "catOrange", "catPurple", "catOrange", "catBlue"];
 
 export function RoleCategoryPicker({ masterCategories, clientCategories }: Props) {
-    const [role, setRole] = useState<Role | null>(null);
+  const merged = [...masterCategories, ...clientCategories].slice(0, 6);
 
-    const categories = useMemo(() => {
-        if (role === "master") return masterCategories;
-        if (role === "client") return clientCategories;
-        return [];
-    }, [role, masterCategories, clientCategories]);
+  return (
+    <div className="homeBlocks">
+      <div className="homeIntro">
+        <h1 className="h1">Приветствуем!</h1>
+        <p className="lead">Сарафан — это удобная онлайн-платформа, которая объединяет мастеров и клиентов.</p>
+      </div>
 
-    return (
-        <div className="picker">
-            <h2 className="h2">Кто вы?</h2>
+      <div>
+        <h2 className="h2">Вы бьюти-специалист ?</h2>
+        <p className="muted center">Выберите категорию</p>
 
-            <div className="roleButtons">
-                <button
-                    type="button"
-                    className={`btn ${role === "master" ? "btnPrimary" : "btnGhost"}`}
-                    onClick={() => setRole("master")}
-                >
-                    Вы предлагаете услуги?
-                </button>
-
-                <button
-                    type="button"
-                    className={`btn ${role === "client" ? "btnSecondary" : "btnGhost"}`}
-                    onClick={() => setRole("client")}
-                >
-                    Вы ищете услугу?
-                </button>
-            </div>
-
-            {role && (
-                <div style={{ marginTop: 20 }}>
-                    <h3 className="h3">
-                        {role === "master" ? "Вы предлагаете услуги" : "Вы ищете услугу"}
-                    </h3>
-
-                    <p className="muted" style={{ marginTop: 6 }}>
-                        Выберите категорию:
-                    </p>
-
-                    <div className="grid2" style={{ marginTop: 12 }}>
-                        {categories.map((cat) => (
-                            <Link
-                                key={cat.id}
-                                href={`/masters?slug=${encodeURIComponent(cat.slug)}`}
-                                className="chip"
-                            >
-                                {cat.name}
-                            </Link>
-                        ))}
-                    </div>
-
-                    {categories.length === 0 && (
-                        <p className="muted" style={{ marginTop: 10 }}>
-                            Категорий пока нет.
-                        </p>
-                    )}
-                </div>
-            )}
+        <div className="grid2">
+          {merged.map((cat, i) => (
+            <Link key={cat.id} href={`/masters?slug=${encodeURIComponent(cat.slug)}`} className={`chip ${palette[i % palette.length]}`}>
+              {cat.name}
+            </Link>
+          ))}
         </div>
-    );
+      </div>
+
+      <div className="ctaRow">
+        <Link href="/masters" className="btn btnPrimary">Поиск</Link>
+      </div>
+    </div>
+  );
 }
