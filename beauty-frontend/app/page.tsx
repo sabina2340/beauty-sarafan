@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { RoleCategoryPicker } from "./role-category-picker";
 import { BrandLogo } from "@/components/BrandLogo";
+import { HotOffersCarousel } from "@/components/ads/HotOffersCarousel";
 
 type CategoryItem = {
   id: number;
@@ -37,6 +38,7 @@ export default async function HomePage() {
       <div className="homeContent card">
         <RoleCategoryPicker groups={groups} />
       </div>
+      <HotOffersCarousel />
     </section>
   );
 }

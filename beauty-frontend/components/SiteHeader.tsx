@@ -32,9 +32,10 @@ export function SiteHeader() {
 
   const links = [
     { href: "/", label: "Главная" },
+    { href: "/hot-offers", label: "Горячие предложения" },
     { href: "/masters", label: "Каталог" },
     ...(canModerate ? [{ href: "/admin", label: "Админ" }] : []),
-    ...(me ? [{ href: "/profile", label: "Личный кабинет" }] : [{ href: "/login", label: "Вход" }, { href: "/register", label: "Регистрация" }]),
+    ...(me ? [{ href: "/profile", label: "Профиль" }, { href: "/account/ads", label: "Мои объявления" }] : [{ href: "/login", label: "Вход" }, { href: "/register", label: "Регистрация" }]),
   ];
 
   return (
@@ -52,7 +53,7 @@ export function SiteHeader() {
           {links.map((link) => (
             <Link key={link.href} href={link.href} onClick={() => setMenuOpen(false)}>{link.label}</Link>
           ))}
-          {me ? <button type="button" className="menuBtn" onClick={onLogout}>Выйти</button> : null}
+          {me ? <button type="button" className="btn btnGhost menuBtn" onClick={onLogout}>Выйти</button> : null}
         </nav>
       ) : null}
     </header>

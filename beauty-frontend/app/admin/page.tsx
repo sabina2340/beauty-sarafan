@@ -2,6 +2,9 @@
 
 import { FormEvent, useMemo, useState } from "react";
 import {
+  confirmPayment,
+  getAdminPendingPayments,
+  rejectPayment,
   adminPing,
   approveAd,
   approveUser,
@@ -9,12 +12,14 @@ import {
   getAdminAds,
   getAdminMasters,
   rejectAd,
+  updateAdByAdmin,
   rejectUser,
   type AdminAd,
   type AdminMaster,
 } from "@/lib/admin-api";
 
 type ModerationStatus = "pending" | "approved" | "rejected";
+type AdStatus = "pending" | "approved" | "rejected" | "active" | "expired";
 
 export default function AdminPage() {
   const [message, setMessage] = useState<string>("");
@@ -25,6 +30,13 @@ export default function AdminPage() {
 
   const [adsStatus, setAdsStatus] = useState<ModerationStatus>("pending");
   const [ads, setAds] = useState<AdminAd[]>([]);
+  const [payments, setPayments] = useState<any[]>([]);
+  const [editAdId, setEditAdId] = useState<number | null>(null);
+  const [editAdTitle, setEditAdTitle] = useState("");
+  const [editAdDescription, setEditAdDescription] = useState("");
+  const [editAdCity, setEditAdCity] = useState("");
+  const [editAdStatus, setEditAdStatus] = useState<AdStatus>("pending");
+  const [editAdImages, setEditAdImages] = useState<File[]>([]);
 
   const [categoryName, setCategoryName] = useState("");
   const [categorySlug, setCategorySlug] = useState("");
@@ -92,7 +104,45 @@ export default function AdminPage() {
     }
   };
 
+  const loadPayments = async () => {
+    try {
+      const res = await getAdminPendingPayments();
+      setPayments(Array.isArray(res) ? res : []);
+      setOk(`Платежей на проверке: ${Array.isArray(res) ? res.length : 0}`);
+    } catch (e) {
+      setFail(e);
+    }
+  };
+
   const quickRejectReason = (label: string) => window.prompt(`Причина отклонения (${label})`, "") || "";
+
+  const startEditAd = (ad: AdminAd) => {
+    setEditAdId(ad.id);
+    setEditAdTitle(ad.title || "");
+    setEditAdDescription(ad.description || "");
+    setEditAdCity(ad.city || "");
+    setEditAdStatus(ad.status || "pending");
+    setEditAdImages([]);
+  };
+
+  const saveEditedAd = async () => {
+    if (!editAdId) return;
+    try {
+      await updateAdByAdmin(editAdId, {
+        title: editAdTitle,
+        description: editAdDescription,
+        city: editAdCity,
+        status: editAdStatus,
+        images: editAdImages,
+        append_images: true,
+      });
+      setOk("Объявление обновлено");
+      setEditAdId(null);
+      await loadAds();
+    } catch (e) {
+      setFail(e);
+    }
+  };
 
   return (
     <section className="adminPage">
@@ -169,11 +219,10 @@ export default function AdminPage() {
                 <strong>{master.full_name || master.login}</strong> · {master.city || "—"}
                 <p className="muted">ID: {master.user_id} · role: {master.role} · status: {master.status}</p>
                 <p className="muted">{master.description || "Описание не заполнено"}</p>
-                <p className="muted">
-                  <a href="/profile">Открыть профиль в ЛК</a>
-                  {" · "}
-                  {master.status === "approved" ? <a href={`/masters/${master.user_id}`}>Открыть публичную карточку</a> : <span>Публичная карточка недоступна</span>}
-                </p>
+                <div className="adminActions">
+                  <a className="btn btnGhost" href="/profile">Открыть профиль в ЛК</a>
+                  {master.status === "approved" ? <a className="btn btnGhost" href={`/masters/${master.user_id}`}>Открыть публичную карточку</a> : <span className="muted">Публичная карточка недоступна</span>}
+                </div>
               </div>
               <div className="adminActions">
                 <button className="btn btnPrimary" onClick={async () => { try { await approveUser(master.user_id); await loadMasters(); setOk("Пользователь одобрен"); } catch (e) { setFail(e); } }}>Одобрить</button>
@@ -204,14 +253,60 @@ export default function AdminPage() {
               <div>
                 <strong>{ad.title}</strong> · {ad.city || "—"}
                 <p className="muted">ID: {ad.id} · type: {ad.type} · status: {ad.status} · login: {ad.login || "—"}</p>
+                {ad.image_url ? <img src={ad.image_url} alt={ad.title} style={{ width: 90, height: 70, objectFit: "cover", borderRadius: 8 }} /> : null}
               </div>
               <div className="adminActions">
+                <button className="btn btnSecondary" onClick={() => startEditAd(ad)}>Редактировать</button>
                 <button className="btn btnPrimary" onClick={async () => { try { await approveAd(ad.id); await loadAds(); setOk("Объявление одобрено"); } catch (e) { setFail(e); } }}>Одобрить</button>
                 <button className="btn btnGhost" onClick={async () => { try { await rejectAd(ad.id, quickRejectReason("объявление")); await loadAds(); setOk("Объявление отклонено"); } catch (e) { setFail(e); } }}>Отклонить</button>
               </div>
             </div>
           ))}
           {ads.length === 0 ? <p className="muted">Список пуст. Выберите статус и нажмите «Загрузить».</p> : null}
+        </div>
+
+        {editAdId ? (
+          <div className="adminItem">
+            <h3>Редактирование объявления #{editAdId}</h3>
+            <input className="input" value={editAdTitle} onChange={(e) => setEditAdTitle(e.target.value)} placeholder="Заголовок" />
+            <textarea className="textarea" value={editAdDescription} onChange={(e) => setEditAdDescription(e.target.value)} placeholder="Описание" />
+            <input className="input" value={editAdCity} onChange={(e) => setEditAdCity(e.target.value)} placeholder="Город" />
+            <select className="select" value={editAdStatus} onChange={(e) => setEditAdStatus(e.target.value as AdStatus)}>
+              <option value="pending">pending</option>
+              <option value="approved">approved</option>
+              <option value="rejected">rejected</option>
+              <option value="active">active</option>
+              <option value="expired">expired</option>
+            </select>
+            <input className="input" type="file" accept="image/*" multiple onChange={(e) => setEditAdImages(Array.from(e.target.files ?? []))} />
+            <div className="adminActions">
+              <button className="btn btnPrimary" onClick={saveEditedAd}>Сохранить</button>
+              <button className="btn btnGhost" onClick={() => setEditAdId(null)}>Отмена</button>
+            </div>
+          </div>
+        ) : null}
+      </article>
+
+      <article className="card adminCard adminSection">
+        <div className="adminSectionHeader">
+          <h2 className="h3">Проверка оплат</h2>
+          <button className="btn btnSecondary" onClick={loadPayments}>Загрузить</button>
+        </div>
+        <div className="adminList">
+          {payments.map((p) => (
+            <div key={p.id} className="adminItem">
+              <div>
+                <strong>{p.advertisement_title}</strong>
+                <p className="muted">Пользователь: {p.login} · Тариф: {p.tariff_name} · Сумма: {p.amount} ₽</p>
+                <p className="muted">Комментарий: {p.comment || "—"}</p>
+              </div>
+              <div className="adminActions">
+                <button className="btn btnPrimary" onClick={async () => { await confirmPayment(p.id); await loadPayments(); }}>Подтвердить оплату</button>
+                <button className="btn btnGhost" onClick={async () => { await rejectPayment(p.id); await loadPayments(); }}>Отклонить оплату</button>
+              </div>
+            </div>
+          ))}
+          {payments.length === 0 ? <p className="muted">Список пуст.</p> : null}
         </div>
       </article>
     </section>

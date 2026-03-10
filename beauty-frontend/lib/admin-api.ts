@@ -29,6 +29,7 @@ export type AdminAd = {
   full_name?: string;
   category_name?: string;
   category_slug?: string;
+  image_url?: string;
 };
 
 const API_URL = "/api";
@@ -118,4 +119,58 @@ export async function rejectAd(adId: number, reason: string) {
     body: JSON.stringify(reason.trim() ? { reason } : {}),
   });
   return parseResponse(response);
+}
+
+export async function updateAdByAdmin(adId: number, payload: {
+  type?: "service" | "cabinet" | "salon";
+  title?: string;
+  description?: string;
+  city?: string;
+  category_id?: number;
+  status?: "pending" | "approved" | "rejected" | "active" | "expired";
+  append_images?: boolean;
+  image_urls?: string[];
+  images?: File[];
+}) {
+  const formData = new FormData();
+  if (payload.type) formData.append("type", payload.type);
+  if (payload.title) formData.append("title", payload.title);
+  if (payload.description) formData.append("description", payload.description);
+  if (payload.city) formData.append("city", payload.city);
+  if (payload.category_id) formData.append("category_id", String(payload.category_id));
+  if (payload.status) formData.append("status", payload.status);
+  formData.append("append_images", String(payload.append_images ?? true));
+  for (const url of payload.image_urls || []) formData.append("image_urls[]", url);
+  for (const file of payload.images || []) formData.append("images[]", file);
+
+  const response = await fetch(`${API_URL}/admin/ads/${adId}`, {
+    method: "PUT",
+    credentials: "include",
+    body: formData,
+  });
+  return parseResponse(response);
+}
+
+export async function getAdminPendingPayments() {
+  const response = await fetch(`${API_URL}/admin/payments/pending`, {
+    credentials: "include",
+    cache: "no-store",
+  });
+  return parseResponse<any[]>(response);
+}
+
+export async function confirmPayment(paymentId: number) {
+  const response = await fetch(`${API_URL}/admin/payments/${paymentId}/confirm`, {
+    method: "POST",
+    credentials: "include",
+  });
+  return parseResponse<{ message: string }>(response);
+}
+
+export async function rejectPayment(paymentId: number) {
+  const response = await fetch(`${API_URL}/admin/payments/${paymentId}/reject`, {
+    method: "POST",
+    credentials: "include",
+  });
+  return parseResponse<{ message: string }>(response);
 }
