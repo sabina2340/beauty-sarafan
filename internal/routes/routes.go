@@ -100,6 +100,7 @@ func RegisterRoutes(r *gin.Engine, db *gorm.DB) {
 
 		adminGroup.GET("/ads", ads.AdminList)
 		adminGroup.GET("/ads/moderation", ads.AdminList)
+		adminGroup.PUT("/ads/:id", ads.AdminUpdate)
 		adminGroup.PATCH("/ads/:id/approve", ads.AdminApprove)
 		adminGroup.PATCH("/ads/:id/reject", ads.AdminReject)
 		adminGroup.GET("/payments/pending", ads.AdminPendingPayments)

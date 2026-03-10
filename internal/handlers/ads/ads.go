@@ -5,8 +5,10 @@ import (
 	"beauty-sarafan/internal/models"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 )
 
 type UpsertAdRequest struct {
@@ -19,6 +21,15 @@ type UpsertAdRequest struct {
 
 type RejectAdRequest struct {
 	Reason string `json:"reason"`
+}
+
+type AdminUpdateAdRequest struct {
+	Type        string
+	Title       string
+	Description string
+	City        string
+	CategoryID  *uint
+	Status      string
 }
 
 // Create godoc
@@ -218,7 +229,8 @@ func AdminList(c *gin.Context) {
 	var rows []map[string]interface{}
 	err := database.DB.Table("advertisements a").
 		Select(`a.id, a.user_id, a.type, a.title, a.description, a.city, a.status, a.rejection_reason,
-			u.login, mp.full_name, c.name as category_name, c.slug as category_slug`).
+			u.login, mp.full_name, c.name as category_name, c.slug as category_slug,
+			COALESCE((SELECT ai.image_url FROM ad_images ai WHERE ai.advertisement_id = a.id ORDER BY ai.sort_order asc, ai.id asc LIMIT 1), '') AS image_url`).
 		Joins("JOIN users u ON u.id = a.user_id").
 		Joins("LEFT JOIN master_profiles mp ON mp.user_id = a.user_id").
 		Joins("LEFT JOIN categories c ON c.id = a.category_id").
@@ -231,6 +243,72 @@ func AdminList(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, rows)
+}
+
+func AdminUpdate(c *gin.Context) {
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid ad id"})
+		return
+	}
+
+	var ad models.Advertisement
+	if err := database.DB.First(&ad, id).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "ad not found"})
+		return
+	}
+
+	req := AdminUpdateAdRequest{
+		Type:        strings.TrimSpace(c.PostForm("type")),
+		Title:       strings.TrimSpace(c.PostForm("title")),
+		Description: strings.TrimSpace(c.PostForm("description")),
+		City:        strings.TrimSpace(c.PostForm("city")),
+		Status:      strings.TrimSpace(c.PostForm("status")),
+	}
+	if rawCategoryID := strings.TrimSpace(c.PostForm("category_id")); rawCategoryID != "" {
+		if categoryID, parseErr := strconv.ParseUint(rawCategoryID, 10, 64); parseErr == nil {
+			value := uint(categoryID)
+			req.CategoryID = &value
+		}
+	}
+
+	if req.Type != "" {
+		ad.Type = req.Type
+	}
+	if req.Title != "" {
+		ad.Title = req.Title
+	}
+	if req.Description != "" {
+		ad.Description = req.Description
+	}
+	if req.City != "" {
+		ad.City = req.City
+	}
+	if req.CategoryID != nil {
+		ad.CategoryID = req.CategoryID
+	}
+	if req.Status != "" {
+		ad.Status = req.Status
+	}
+
+	imageURLs := []string{}
+	if raw := c.PostFormArray("image_urls[]"); len(raw) > 0 {
+		imageURLs = append(imageURLs, raw...)
+	}
+	appendImages := c.DefaultPostForm("append_images", "true") != "false"
+
+	err = database.DB.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Save(&ad).Error; err != nil {
+			return err
+		}
+		return upsertAdImagesFromRequest(tx, c, ad.ID, appendImages, imageURLs)
+	})
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to update ad"})
+		return
+	}
+
+	c.JSON(http.StatusOK, ad)
 }
 
 // AdminApprove godoc

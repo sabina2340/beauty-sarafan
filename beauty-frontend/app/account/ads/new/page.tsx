@@ -10,6 +10,7 @@ export default function NewAdPage() {
   const [city, setCity] = useState("");
   const [categoryId, setCategoryId] = useState("");
   const [images, setImages] = useState("");
+  const [imageFiles, setImageFiles] = useState<File[]>([]);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
 
@@ -19,11 +20,12 @@ export default function NewAdPage() {
     setMessage("");
     try {
       const image_urls = images.split("\n").map((s) => s.trim()).filter(Boolean);
-      const res = await createAd({ type, title, description, city, category_id: categoryId ? Number(categoryId) : undefined, image_urls });
+      const res = await createAd({ type, title, description, city, category_id: categoryId ? Number(categoryId) : undefined, image_urls, images: imageFiles });
       setMessage(res.message);
       setTitle("");
       setDescription("");
       setImages("");
+      setImageFiles([]);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Ошибка создания объявления");
     }
@@ -43,6 +45,8 @@ export default function NewAdPage() {
         <input className="input" placeholder="Город" value={city} onChange={(e) => setCity(e.target.value)} />
         <input className="input" placeholder="Category ID" value={categoryId} onChange={(e) => setCategoryId(e.target.value)} />
         <textarea className="textarea" placeholder="Ссылки на изображения, по одной в строке" value={images} onChange={(e) => setImages(e.target.value)} />
+        <input className="input" type="file" accept="image/*" multiple onChange={(e) => setImageFiles(Array.from(e.target.files ?? []))} />
+        {imageFiles.length ? <p className="muted">Выбрано файлов: {imageFiles.length}</p> : null}
         <button className="btn btnPrimary" type="submit">Отправить на модерацию</button>
       </form>
       {message ? <p className="adminOk">{message}</p> : null}

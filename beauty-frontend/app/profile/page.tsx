@@ -178,9 +178,9 @@ export default function ProfilePage() {
       {error ? <p className="adminError authHint">{error}</p> : null}
 
       {(me.role === "admin" || me.role === "moderator") ? (
-        <p className="authHint"><Link href="/admin">Перейти в админ-панель</Link></p>
+        <p><Link className="btn btnGhost" href="/admin">Перейти в админ-панель</Link></p>
       ) : null}
-      <p className="authHint"><Link href="/account/ads">Перейти в мои объявления</Link></p>
+      <p><Link className="btn btnSecondary" href="/account/ads">Перейти в мои объявления</Link></p>
     </section>
   );
 }

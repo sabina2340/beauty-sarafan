@@ -53,7 +53,7 @@ export function SiteHeader() {
           {links.map((link) => (
             <Link key={link.href} href={link.href} onClick={() => setMenuOpen(false)}>{link.label}</Link>
           ))}
-          {me ? <button type="button" className="menuBtn" onClick={onLogout}>Выйти</button> : null}
+          {me ? <button type="button" className="btn btnGhost menuBtn" onClick={onLogout}>Выйти</button> : null}
         </nav>
       ) : null}
     </header>

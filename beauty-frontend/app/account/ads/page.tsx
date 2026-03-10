@@ -15,7 +15,7 @@ export default function MyAdsPage() {
   return (
     <section className="card">
       <h1 className="h1">Мои объявления</h1>
-      <p><Link href="/account/ads/new">+ Создать объявление</Link></p>
+      <p><Link className="btn btnPrimary" href="/account/ads/new">+ Создать объявление</Link></p>
       {ads.map((ad) => (
         <article key={ad.id} className="adminItem">
           <strong>{ad.title}</strong>

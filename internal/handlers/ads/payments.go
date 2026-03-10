@@ -3,9 +3,11 @@ package ads
 import (
 	"beauty-sarafan/internal/database"
 	"beauty-sarafan/internal/models"
+	"beauty-sarafan/internal/storage"
 	"fmt"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -29,13 +31,82 @@ func buildPaymentQR(paymentID uint, amount int) string {
 	return fmt.Sprintf("https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=PAYMENT%%3A%d%%7CAMOUNT%%3A%d", paymentID, amount)
 }
 
+func parseAdPayload(c *gin.Context) (createAdRequest, error) {
+	var req createAdRequest
+	if strings.Contains(c.GetHeader("Content-Type"), "multipart/form-data") {
+		req.Type = strings.TrimSpace(c.PostForm("type"))
+		req.Title = strings.TrimSpace(c.PostForm("title"))
+		req.Description = strings.TrimSpace(c.PostForm("description"))
+		req.City = strings.TrimSpace(c.PostForm("city"))
+		req.ImageURLs = c.PostFormArray("image_urls[]")
+		if rawCategoryID := strings.TrimSpace(c.PostForm("category_id")); rawCategoryID != "" {
+			if categoryID, err := strconv.ParseUint(rawCategoryID, 10, 64); err == nil {
+				parsed := uint(categoryID)
+				req.CategoryID = &parsed
+			}
+		}
+		return req, nil
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		return req, err
+	}
+	return req, nil
+}
+
+func upsertAdImagesFromRequest(tx *gorm.DB, c *gin.Context, adID uint, appendMode bool, imageURLs []string) error {
+	uploader := storage.NewService()
+
+	if !appendMode {
+		if err := tx.Where("advertisement_id = ?", adID).Delete(&models.AdImage{}).Error; err != nil {
+			return err
+		}
+	}
+
+	var currentCount int64
+	if err := tx.Model(&models.AdImage{}).Where("advertisement_id = ?", adID).Count(&currentCount).Error; err != nil {
+		return err
+	}
+
+	sortOrder := int(currentCount)
+	for _, imageURL := range imageURLs {
+		if strings.TrimSpace(imageURL) == "" {
+			continue
+		}
+		if err := tx.Create(&models.AdImage{AdvertisementID: adID, ImageURL: strings.TrimSpace(imageURL), SortOrder: sortOrder}).Error; err != nil {
+			return err
+		}
+		sortOrder++
+	}
+
+	form, err := c.MultipartForm()
+	if err == nil && form != nil {
+		files := form.File["images[]"]
+		for _, fileHeader := range files {
+			uploaded, uploadErr := uploader.UploadImage(fileHeader, "ads/images")
+			if uploadErr != nil {
+				return uploadErr
+			}
+			if err := tx.Create(&models.AdImage{AdvertisementID: adID, ImageURL: uploaded, SortOrder: sortOrder}).Error; err != nil {
+				return err
+			}
+			sortOrder++
+		}
+	}
+
+	return nil
+}
+
 // CreateWithImages POST /advertisements
 func CreateWithImages(c *gin.Context) {
 	userID := c.GetUint("user_id")
 
-	var req createAdRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
+	req, err := parseAdPayload(c)
+	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request data"})
+		return
+	}
+	if req.Type == "" || req.Title == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "type and title are required"})
 		return
 	}
 
@@ -49,21 +120,11 @@ func CreateWithImages(c *gin.Context) {
 		Status:      models.AdStatusPending,
 	}
 
-	err := database.DB.Transaction(func(tx *gorm.DB) error {
+	err = database.DB.Transaction(func(tx *gorm.DB) error {
 		if err := tx.Create(&ad).Error; err != nil {
 			return err
 		}
-
-		for idx, imageURL := range req.ImageURLs {
-			if imageURL == "" {
-				continue
-			}
-			if err := tx.Create(&models.AdImage{AdvertisementID: ad.ID, ImageURL: imageURL, SortOrder: idx}).Error; err != nil {
-				return err
-			}
-		}
-
-		return nil
+		return upsertAdImagesFromRequest(tx, c, ad.ID, true, req.ImageURLs)
 	})
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create ad"})
@@ -323,10 +384,15 @@ func HotOffers(c *gin.Context) {
 	now := time.Now()
 	var rows []map[string]interface{}
 	err := database.DB.Table("advertisements a").
-		Select(`a.id, a.type, a.title, a.description, a.city, a.activated_at, a.expires_at,
+		Select(`a.id, a.type, a.title, a.description, a.city,
+			COALESCE(a.activated_at, p.paid_at) as activated_at,
+			COALESCE(a.expires_at, p.paid_at + (t.duration_days || ' days')::interval) as expires_at,
 			COALESCE((SELECT ai.image_url FROM ad_images ai WHERE ai.advertisement_id = a.id ORDER BY ai.sort_order asc, ai.id asc LIMIT 1), '') AS image_url`).
-		Where("a.status = ? AND a.expires_at IS NOT NULL AND a.expires_at > ?", models.AdStatusActive, now).
-		Order("a.activated_at desc").
+		Joins("LEFT JOIN payments p ON p.advertisement_id = a.id AND p.status = 'confirmed'").
+		Joins("LEFT JOIN tariffs t ON t.id = p.tariff_id").
+		Where("(a.status = ? OR p.id IS NOT NULL) AND COALESCE(a.expires_at, p.paid_at + (t.duration_days || ' days')::interval) > ?", models.AdStatusActive, now).
+		Order("COALESCE(a.activated_at, p.paid_at) desc").
+		Group("a.id, p.paid_at, t.duration_days").
 		Find(&rows).Error
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to load offers"})
@@ -346,10 +412,15 @@ func ActiveAds(c *gin.Context) {
 	now := time.Now()
 	var rows []map[string]interface{}
 	err := database.DB.Table("advertisements a").
-		Select(`a.id, a.type, a.title, a.description, a.city, a.activated_at, a.expires_at,
+		Select(`a.id, a.type, a.title, a.description, a.city,
+			COALESCE(a.activated_at, p.paid_at) as activated_at,
+			COALESCE(a.expires_at, p.paid_at + (t.duration_days || ' days')::interval) as expires_at,
 			COALESCE((SELECT ai.image_url FROM ad_images ai WHERE ai.advertisement_id = a.id ORDER BY ai.sort_order asc, ai.id asc LIMIT 1), '') AS image_url`).
-		Where("a.status = ? AND a.expires_at IS NOT NULL AND a.expires_at > ?", models.AdStatusActive, now).
-		Order("a.activated_at desc").
+		Joins("LEFT JOIN payments p ON p.advertisement_id = a.id AND p.status = 'confirmed'").
+		Joins("LEFT JOIN tariffs t ON t.id = p.tariff_id").
+		Where("(a.status = ? OR p.id IS NOT NULL) AND COALESCE(a.expires_at, p.paid_at + (t.duration_days || ' days')::interval) > ?", models.AdStatusActive, now).
+		Order("COALESCE(a.activated_at, p.paid_at) desc").
+		Group("a.id, p.paid_at, t.duration_days").
 		Limit(limit).
 		Find(&rows).Error
 	if err != nil {

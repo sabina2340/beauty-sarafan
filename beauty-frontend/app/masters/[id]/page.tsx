@@ -32,7 +32,7 @@ export default async function MasterDetailPage({ params, searchParams }: Props) 
 
     return (
       <section className="masterPage">
-        <Link href={backHref} className="backLink">← Назад к каталогу</Link>
+        <Link href={backHref} className="btn btnGhost">← Назад к каталогу</Link>
 
         <article className="card masterHeroCard">
           <div className="masterTop">

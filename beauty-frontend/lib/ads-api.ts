@@ -40,13 +40,26 @@ export async function createAd(payload: {
   description: string;
   city: string;
   category_id?: number;
-  image_urls: string[];
+  image_urls?: string[];
+  images?: File[];
 }) {
+  const formData = new FormData();
+  formData.append("type", payload.type);
+  formData.append("title", payload.title);
+  formData.append("description", payload.description);
+  formData.append("city", payload.city);
+  if (payload.category_id) formData.append("category_id", String(payload.category_id));
+  for (const imageUrl of payload.image_urls || []) {
+    formData.append("image_urls[]", imageUrl);
+  }
+  for (const file of payload.images || []) {
+    formData.append("images[]", file);
+  }
+
   const response = await fetch(`${API_URL}/advertisements`, {
     method: "POST",
     credentials: "include",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload),
+    body: formData,
   });
   return parseResponse<{ message: string; advertisement: Advertisement }>(response);
 }
