@@ -27,7 +27,7 @@ export async function getMasters(params?: {
 }
 
 export async function getMasterById(id: string): Promise<MasterDetail> {
-  const response = await fetch(`${API_URL}/masters/${id}`, { cache: "no-store" });
+  const response = await fetch(`http://localhost:8080/masters/${id}`, { cache: "no-store" });
   return parseResponse<MasterDetail>(response);
 }
 
