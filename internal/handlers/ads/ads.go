@@ -73,7 +73,36 @@ func ListMine(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to load ads"})
 		return
 	}
-	c.JSON(http.StatusOK, ads)
+
+	rows := make([]gin.H, 0, len(ads))
+	for _, ad := range ads {
+		row := gin.H{
+			"id":               ad.ID,
+			"user_id":          ad.UserID,
+			"type":             ad.Type,
+			"title":            ad.Title,
+			"description":      ad.Description,
+			"city":             ad.City,
+			"category_id":      ad.CategoryID,
+			"status":           ad.Status,
+			"tariff_id":        ad.TariffID,
+			"activated_at":     ad.ActivatedAt,
+			"expires_at":       ad.ExpiresAt,
+			"rejection_reason": ad.RejectionReason,
+			"created_at":       ad.CreatedAt,
+		}
+
+		var p models.Payment
+		if err := database.DB.Where("advertisement_id = ?", ad.ID).Order("id desc").First(&p).Error; err == nil {
+			row["last_payment_id"] = p.ID
+			row["last_payment_status"] = p.Status
+			row["has_pending_payment"] = p.Status == "pending"
+		}
+
+		rows = append(rows, row)
+	}
+
+	c.JSON(http.StatusOK, rows)
 }
 
 // GetMine godoc
@@ -211,6 +240,7 @@ func AdminList(c *gin.Context) {
 // @Success 200 {object} models.Advertisement
 // @Router /admin/ads/{id}/approve [patch]
 func AdminApprove(c *gin.Context) {
+	adminID := c.GetUint("user_id")
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid ad id"})
@@ -229,6 +259,7 @@ func AdminApprove(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to update ad"})
 		return
 	}
+	_ = database.DB.Create(&models.ModerationLog{EntityType: "advertisement", EntityID: ad.ID, AdminID: adminID, Action: "approved"}).Error
 
 	c.JSON(http.StatusOK, ad)
 }
@@ -242,6 +273,7 @@ func AdminApprove(c *gin.Context) {
 // @Success 200 {object} models.Advertisement
 // @Router /admin/ads/{id}/reject [patch]
 func AdminReject(c *gin.Context) {
+	adminID := c.GetUint("user_id")
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid ad id"})
@@ -265,6 +297,7 @@ func AdminReject(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to update ad"})
 		return
 	}
+	_ = database.DB.Create(&models.ModerationLog{EntityType: "advertisement", EntityID: ad.ID, AdminID: adminID, Action: "rejected", Comment: req.Reason}).Error
 
 	c.JSON(http.StatusOK, ad)
 }

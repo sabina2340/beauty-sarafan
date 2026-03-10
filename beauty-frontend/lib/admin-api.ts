@@ -119,3 +119,27 @@ export async function rejectAd(adId: number, reason: string) {
   });
   return parseResponse(response);
 }
+
+export async function getAdminPendingPayments() {
+  const response = await fetch(`${API_URL}/admin/payments/pending`, {
+    credentials: "include",
+    cache: "no-store",
+  });
+  return parseResponse<any[]>(response);
+}
+
+export async function confirmPayment(paymentId: number) {
+  const response = await fetch(`${API_URL}/admin/payments/${paymentId}/confirm`, {
+    method: "POST",
+    credentials: "include",
+  });
+  return parseResponse<{ message: string }>(response);
+}
+
+export async function rejectPayment(paymentId: number) {
+  const response = await fetch(`${API_URL}/admin/payments/${paymentId}/reject`, {
+    method: "POST",
+    credentials: "include",
+  });
+  return parseResponse<{ message: string }>(response);
+}

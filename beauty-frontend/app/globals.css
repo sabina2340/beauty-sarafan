@@ -123,3 +123,28 @@ body { margin: 0; font-family: Inter, system-ui, Arial, sans-serif; background: 
   font-size: 14px;
   background: #f8fdff;
 }
+
+.adsCarousel {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+
+.adCard {
+  min-width: 250px;
+  max-width: 290px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 10px;
+  background: #fff;
+  display: grid;
+  gap: 8px;
+}
+
+.adCardImg {
+  width: 100%;
+  height: 140px;
+  object-fit: cover;
+  border-radius: 10px;
+}

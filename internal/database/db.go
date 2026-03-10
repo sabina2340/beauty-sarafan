@@ -53,9 +53,24 @@ func InitDB() *gorm.DB {
 
 	seedAdmin(db)
 	seedCategories(db)
+	seedTariffs(db)
 
 	DB = db
 	return db
+}
+
+func seedTariffs(db *gorm.DB) {
+	items := []models.Tariff{
+		{Name: "7 дней", Price: 1000, DurationDays: 7, IsActive: true},
+		{Name: "14 дней", Price: 1800, DurationDays: 14, IsActive: true},
+		{Name: "30 дней", Price: 3200, DurationDays: 30, IsActive: true},
+	}
+	for _, item := range items {
+		tariff := item
+		if err := db.Where("name = ?", item.Name).Assign(item).FirstOrCreate(&tariff).Error; err != nil {
+			log.Printf("tariff seed error (%s): %v", item.Name, err)
+		}
+	}
 }
 
 func seedAdmin(db *gorm.DB) {

@@ -1,0 +1,360 @@
+package ads
+
+import (
+	"beauty-sarafan/internal/database"
+	"beauty-sarafan/internal/models"
+	"fmt"
+	"net/http"
+	"strconv"
+	"time"
+
+	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
+)
+
+type createAdRequest struct {
+	UpsertAdRequest
+	ImageURLs []string `json:"image_urls"`
+}
+
+type selectTariffRequest struct {
+	TariffID uint `json:"tariff_id" binding:"required"`
+}
+
+type markPaidRequest struct {
+	Comment string `json:"comment"`
+}
+
+func buildPaymentQR(paymentID uint, amount int) string {
+	return fmt.Sprintf("https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=PAYMENT%%3A%d%%7CAMOUNT%%3A%d", paymentID, amount)
+}
+
+// CreateWithImages POST /advertisements
+func CreateWithImages(c *gin.Context) {
+	userID := c.GetUint("user_id")
+
+	var req createAdRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request data"})
+		return
+	}
+
+	ad := models.Advertisement{
+		UserID:      userID,
+		Type:        req.Type,
+		Title:       req.Title,
+		Description: req.Description,
+		City:        req.City,
+		CategoryID:  req.CategoryID,
+		Status:      models.AdStatusPending,
+	}
+
+	err := database.DB.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Create(&ad).Error; err != nil {
+			return err
+		}
+
+		for idx, imageURL := range req.ImageURLs {
+			if imageURL == "" {
+				continue
+			}
+			if err := tx.Create(&models.AdImage{AdvertisementID: ad.ID, ImageURL: imageURL, SortOrder: idx}).Error; err != nil {
+				return err
+			}
+		}
+
+		return nil
+	})
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create ad"})
+		return
+	}
+
+	c.JSON(http.StatusCreated, gin.H{"message": "Объявление отправлено на модерацию", "advertisement": ad})
+}
+
+// TariffsList GET /tariffs
+func TariffsList(c *gin.Context) {
+	var tariffs []models.Tariff
+	if err := database.DB.Where("is_active = ?", true).Order("price asc").Find(&tariffs).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to load tariffs"})
+		return
+	}
+	c.JSON(http.StatusOK, tariffs)
+}
+
+// SelectTariff POST /advertisements/:id/select-tariff
+func SelectTariff(c *gin.Context) {
+	userID := c.GetUint("user_id")
+	adID, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid ad id"})
+		return
+	}
+
+	var req selectTariffRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request data"})
+		return
+	}
+
+	var ad models.Advertisement
+	if err := database.DB.Where("id = ? AND user_id = ?", adID, userID).First(&ad).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "ad not found"})
+		return
+	}
+	if ad.Status != models.AdStatusApproved {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "tariff can be selected only for approved ad"})
+		return
+	}
+
+	var tariff models.Tariff
+	if err := database.DB.Where("id = ? AND is_active = ?", req.TariffID, true).First(&tariff).Error; err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "tariff not found"})
+		return
+	}
+
+	var payment models.Payment
+	err = database.DB.Transaction(func(tx *gorm.DB) error {
+		ad.TariffID = &tariff.ID
+		if err := tx.Save(&ad).Error; err != nil {
+			return err
+		}
+		payment = models.Payment{
+			AdvertisementID: ad.ID,
+			TariffID:        tariff.ID,
+			Amount:          tariff.Price,
+			Method:          "QR",
+			Status:          "pending",
+		}
+		if err := tx.Create(&payment).Error; err != nil {
+			return err
+		}
+		return nil
+	})
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create payment"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"payment_id": payment.ID, "redirect": fmt.Sprintf("/account/ads/%d/payment", ad.ID)})
+}
+
+// GetPaymentByAd GET /advertisements/:id/payment
+func GetPaymentByAd(c *gin.Context) {
+	userID := c.GetUint("user_id")
+	adID, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid ad id"})
+		return
+	}
+
+	var ad models.Advertisement
+	if err := database.DB.Where("id = ? AND user_id = ?", adID, userID).First(&ad).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "ad not found"})
+		return
+	}
+
+	var payment models.Payment
+	if err := database.DB.Where("advertisement_id = ?", ad.ID).Order("id desc").First(&payment).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "payment not found"})
+		return
+	}
+
+	var tariff models.Tariff
+	_ = database.DB.First(&tariff, payment.TariffID).Error
+
+	c.JSON(http.StatusOK, gin.H{
+		"advertisement": ad,
+		"payment":       payment,
+		"tariff":        tariff,
+		"qr_url":        buildPaymentQR(payment.ID, payment.Amount),
+	})
+}
+
+// MarkPaymentPaid POST /payments/:id/mark-paid
+func MarkPaymentPaid(c *gin.Context) {
+	userID := c.GetUint("user_id")
+	paymentID, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid payment id"})
+		return
+	}
+
+	var req markPaidRequest
+	_ = c.ShouldBindJSON(&req)
+
+	var payment models.Payment
+	if err := database.DB.First(&payment, paymentID).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "payment not found"})
+		return
+	}
+	var ad models.Advertisement
+	if err := database.DB.Where("id = ? AND user_id = ?", payment.AdvertisementID, userID).First(&ad).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "ad not found"})
+		return
+	}
+
+	now := time.Now()
+	payment.Comment = req.Comment
+	payment.MarkedPaidAt = &now
+	if err := database.DB.Save(&payment).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to update payment"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Платеж отправлен на ручную проверку", "payment": payment})
+}
+
+// AdminPendingPayments GET /admin/payments/pending
+func AdminPendingPayments(c *gin.Context) {
+	var rows []map[string]interface{}
+	err := database.DB.Table("payments p").
+		Select(`p.id, p.status, p.amount, p.comment, p.created_at, p.marked_paid_at,
+			u.login, a.id as advertisement_id, a.title as advertisement_title,
+			t.name as tariff_name, t.duration_days`).
+		Joins("JOIN advertisements a ON a.id = p.advertisement_id").
+		Joins("JOIN users u ON u.id = a.user_id").
+		Joins("JOIN tariffs t ON t.id = p.tariff_id").
+		Where("p.status = ? AND p.marked_paid_at IS NOT NULL", "pending").
+		Order("p.id desc").
+		Find(&rows).Error
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to load payments"})
+		return
+	}
+
+	c.JSON(http.StatusOK, rows)
+}
+
+// AdminConfirmPayment POST /admin/payments/:id/confirm
+func AdminConfirmPayment(c *gin.Context) {
+	adminID := c.GetUint("user_id")
+	paymentID, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid payment id"})
+		return
+	}
+
+	var payment models.Payment
+	if err := database.DB.First(&payment, paymentID).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "payment not found"})
+		return
+	}
+	if payment.Status != "pending" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "payment is already processed"})
+		return
+	}
+
+	var ad models.Advertisement
+	if err := database.DB.First(&ad, payment.AdvertisementID).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "ad not found"})
+		return
+	}
+	var tariff models.Tariff
+	if err := database.DB.First(&tariff, payment.TariffID).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "tariff not found"})
+		return
+	}
+
+	now := time.Now()
+	expires := now.AddDate(0, 0, tariff.DurationDays)
+
+	err = database.DB.Transaction(func(tx *gorm.DB) error {
+		payment.Status = "confirmed"
+		payment.PaidAt = &now
+		if err := tx.Save(&payment).Error; err != nil {
+			return err
+		}
+
+		ad.Status = models.AdStatusActive
+		ad.ActivatedAt = &now
+		ad.ExpiresAt = &expires
+		if err := tx.Save(&ad).Error; err != nil {
+			return err
+		}
+
+		return tx.Create(&models.ModerationLog{
+			EntityType: "payment",
+			EntityID:   payment.ID,
+			AdminID:    adminID,
+			Action:     "confirmed",
+		}).Error
+	})
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to confirm payment"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "payment confirmed"})
+}
+
+// AdminRejectPayment POST /admin/payments/:id/reject
+func AdminRejectPayment(c *gin.Context) {
+	adminID := c.GetUint("user_id")
+	paymentID, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid payment id"})
+		return
+	}
+
+	var payment models.Payment
+	if err := database.DB.First(&payment, paymentID).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "payment not found"})
+		return
+	}
+	if payment.Status != "pending" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "payment is already processed"})
+		return
+	}
+
+	payment.Status = "rejected"
+	if err := database.DB.Save(&payment).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to reject payment"})
+		return
+	}
+	_ = database.DB.Create(&models.ModerationLog{EntityType: "payment", EntityID: payment.ID, AdminID: adminID, Action: "rejected"}).Error
+
+	c.JSON(http.StatusOK, gin.H{"message": "payment rejected"})
+}
+
+// HotOffers GET /hot-offers
+func HotOffers(c *gin.Context) {
+	now := time.Now()
+	var rows []map[string]interface{}
+	err := database.DB.Table("advertisements a").
+		Select(`a.id, a.type, a.title, a.description, a.city, a.activated_at, a.expires_at,
+			COALESCE((SELECT ai.image_url FROM ad_images ai WHERE ai.advertisement_id = a.id ORDER BY ai.sort_order asc, ai.id asc LIMIT 1), '') AS image_url`).
+		Where("a.status = ? AND a.expires_at IS NOT NULL AND a.expires_at > ?", models.AdStatusActive, now).
+		Order("a.activated_at desc").
+		Find(&rows).Error
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to load offers"})
+		return
+	}
+	c.JSON(http.StatusOK, rows)
+}
+
+// ActiveAds GET /ads/active?limit=10
+func ActiveAds(c *gin.Context) {
+	limit := 10
+	if q := c.Query("limit"); q != "" {
+		if parsed, err := strconv.Atoi(q); err == nil && parsed > 0 && parsed <= 30 {
+			limit = parsed
+		}
+	}
+	now := time.Now()
+	var rows []map[string]interface{}
+	err := database.DB.Table("advertisements a").
+		Select(`a.id, a.type, a.title, a.description, a.city, a.activated_at, a.expires_at,
+			COALESCE((SELECT ai.image_url FROM ad_images ai WHERE ai.advertisement_id = a.id ORDER BY ai.sort_order asc, ai.id asc LIMIT 1), '') AS image_url`).
+		Where("a.status = ? AND a.expires_at IS NOT NULL AND a.expires_at > ?", models.AdStatusActive, now).
+		Order("a.activated_at desc").
+		Limit(limit).
+		Find(&rows).Error
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to load active ads"})
+		return
+	}
+	c.JSON(http.StatusOK, rows)
+}

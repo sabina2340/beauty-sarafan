@@ -2,6 +2,9 @@
 
 import { FormEvent, useMemo, useState } from "react";
 import {
+  confirmPayment,
+  getAdminPendingPayments,
+  rejectPayment,
   adminPing,
   approveAd,
   approveUser,
@@ -25,6 +28,7 @@ export default function AdminPage() {
 
   const [adsStatus, setAdsStatus] = useState<ModerationStatus>("pending");
   const [ads, setAds] = useState<AdminAd[]>([]);
+  const [payments, setPayments] = useState<any[]>([]);
 
   const [categoryName, setCategoryName] = useState("");
   const [categorySlug, setCategorySlug] = useState("");
@@ -89,6 +93,16 @@ export default function AdminPage() {
       setCategoryBusiness(false);
     } catch (err) {
       setFail(err);
+    }
+  };
+
+  const loadPayments = async () => {
+    try {
+      const res = await getAdminPendingPayments();
+      setPayments(Array.isArray(res) ? res : []);
+      setOk(`Платежей на проверке: ${Array.isArray(res) ? res.length : 0}`);
+    } catch (e) {
+      setFail(e);
     }
   };
 
@@ -212,6 +226,29 @@ export default function AdminPage() {
             </div>
           ))}
           {ads.length === 0 ? <p className="muted">Список пуст. Выберите статус и нажмите «Загрузить».</p> : null}
+        </div>
+      </article>
+
+      <article className="card adminCard adminSection">
+        <div className="adminSectionHeader">
+          <h2 className="h3">Проверка оплат</h2>
+          <button className="btn btnSecondary" onClick={loadPayments}>Загрузить</button>
+        </div>
+        <div className="adminList">
+          {payments.map((p) => (
+            <div key={p.id} className="adminItem">
+              <div>
+                <strong>{p.advertisement_title}</strong>
+                <p className="muted">Пользователь: {p.login} · Тариф: {p.tariff_name} · Сумма: {p.amount} ₽</p>
+                <p className="muted">Комментарий: {p.comment || "—"}</p>
+              </div>
+              <div className="adminActions">
+                <button className="btn btnPrimary" onClick={async () => { await confirmPayment(p.id); await loadPayments(); }}>Подтвердить оплату</button>
+                <button className="btn btnGhost" onClick={async () => { await rejectPayment(p.id); await loadPayments(); }}>Отклонить оплату</button>
+              </div>
+            </div>
+          ))}
+          {payments.length === 0 ? <p className="muted">Список пуст.</p> : null}
         </div>
       </article>
     </section>

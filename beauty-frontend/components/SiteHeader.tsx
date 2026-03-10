@@ -32,9 +32,10 @@ export function SiteHeader() {
 
   const links = [
     { href: "/", label: "Главная" },
+    { href: "/hot-offers", label: "Горячие предложения" },
     { href: "/masters", label: "Каталог" },
     ...(canModerate ? [{ href: "/admin", label: "Админ" }] : []),
-    ...(me ? [{ href: "/profile", label: "Личный кабинет" }] : [{ href: "/login", label: "Вход" }, { href: "/register", label: "Регистрация" }]),
+    ...(me ? [{ href: "/profile", label: "Профиль" }, { href: "/account/ads", label: "Мои объявления" }] : [{ href: "/login", label: "Вход" }, { href: "/register", label: "Регистрация" }]),
   ];
 
   return (

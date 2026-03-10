@@ -180,6 +180,7 @@ export default function ProfilePage() {
       {(me.role === "admin" || me.role === "moderator") ? (
         <p className="authHint"><Link href="/admin">Перейти в админ-панель</Link></p>
       ) : null}
+      <p className="authHint"><Link href="/account/ads">Перейти в мои объявления</Link></p>
     </section>
   );
 }

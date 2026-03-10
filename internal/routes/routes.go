@@ -59,11 +59,30 @@ func RegisterRoutes(r *gin.Engine, db *gorm.DB) {
 	r.GET("/equipment/:id", equipment.Get)
 
 	r.GET("/ads", ads.PublicList)
+	r.GET("/hot-offers", ads.HotOffers)
+	r.GET("/ads/active", ads.ActiveAds)
+	r.GET("/tariffs", ads.TariffsList)
+	r.GET("/advertisements/my", middleware.AuthMiddleware(), middleware.RequireRole(models.RoleUser), middleware.EnsureApproved(), ads.ListMine)
+	r.GET("/advertisements/:id", middleware.AuthMiddleware(), middleware.RequireRole(models.RoleUser), middleware.EnsureApproved(), ads.GetMine)
 
 	adsProtected := r.Group("/ads")
 	adsProtected.Use(middleware.AuthMiddleware(), middleware.RequireRole(models.RoleUser), middleware.EnsureApproved())
 	{
 		adsProtected.POST("", ads.Create)
+	}
+
+	advertisementsProtected := r.Group("/advertisements")
+	advertisementsProtected.Use(middleware.AuthMiddleware(), middleware.RequireRole(models.RoleUser), middleware.EnsureApproved())
+	{
+		advertisementsProtected.POST("", ads.CreateWithImages)
+		advertisementsProtected.POST("/:id/select-tariff", ads.SelectTariff)
+		advertisementsProtected.GET("/:id/payment", ads.GetPaymentByAd)
+	}
+
+	paymentsProtected := r.Group("/payments")
+	paymentsProtected.Use(middleware.AuthMiddleware(), middleware.RequireRole(models.RoleUser), middleware.EnsureApproved())
+	{
+		paymentsProtected.POST("/:id/mark-paid", ads.MarkPaymentPaid)
 	}
 
 	adminGroup := r.Group("/admin")
@@ -80,8 +99,12 @@ func RegisterRoutes(r *gin.Engine, db *gorm.DB) {
 		adminGroup.POST("/categories", categories.Create)
 
 		adminGroup.GET("/ads", ads.AdminList)
+		adminGroup.GET("/ads/moderation", ads.AdminList)
 		adminGroup.PATCH("/ads/:id/approve", ads.AdminApprove)
 		adminGroup.PATCH("/ads/:id/reject", ads.AdminReject)
+		adminGroup.GET("/payments/pending", ads.AdminPendingPayments)
+		adminGroup.POST("/payments/:id/confirm", ads.AdminConfirmPayment)
+		adminGroup.POST("/payments/:id/reject", ads.AdminRejectPayment)
 	}
 
 	r.Static("/uploads", "./uploads")
