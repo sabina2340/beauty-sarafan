@@ -10,13 +10,13 @@ export function MasterCard({ master, backQuery }: Props) {
   const to = `/masters/${master.user_id}${backQuery ? `?back=${encodeURIComponent(backQuery)}` : ""}`;
 
   return (
-    <article className="card">
-      {master.avatar_url ? <img src={master.avatar_url} alt={master.full_name || master.login} style={{ width: "100%", borderRadius: 12, marginBottom: 8 }} /> : null}
+    <article className="card masterCard">
+      {master.avatar_url ? <img src={master.avatar_url} alt={master.full_name || master.login} className="masterCardImg" /> : null}
       <h3>{master.full_name || master.login}</h3>
       <p className="meta">{master.category_name || "Категория не указана"}</p>
       <p className="meta">{master.city || "Город не указан"} {master.verified ? "· Проверен" : ""}</p>
       <p className="desc">{master.short_description || master.description || "Описание пока не добавлено"}</p>
-      <Link href={to} className="btnSecondary">
+      <Link href={to} className="btn btnSecondary">
         Подробнее
       </Link>
     </article>

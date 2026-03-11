@@ -1,7 +1,9 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
 import { createAd } from "@/lib/ads-api";
+
+type Category = { ID: number; Name: string };
 
 export default function NewAdPage() {
   const [type, setType] = useState("service");
@@ -9,22 +11,42 @@ export default function NewAdPage() {
   const [description, setDescription] = useState("");
   const [city, setCity] = useState("");
   const [categoryId, setCategoryId] = useState("");
-  const [images, setImages] = useState("");
   const [imageFiles, setImageFiles] = useState<File[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [loadingCategories, setLoadingCategories] = useState(true);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    fetch("/api/categories?audience=master", { cache: "no-store" })
+      .then((r) => r.json() as Promise<Category[]>)
+      .then((items) => setCategories(Array.isArray(items) ? items : []))
+      .catch(() => setCategories([]))
+      .finally(() => setLoadingCategories(false));
+  }, []);
+
+  const previews = useMemo(() => imageFiles.map((file) => ({ file, url: URL.createObjectURL(file) })), [imageFiles]);
+
+  useEffect(() => () => previews.forEach((item) => URL.revokeObjectURL(item.url)), [previews]);
 
   const onSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setError("");
     setMessage("");
     try {
-      const image_urls = images.split("\n").map((s) => s.trim()).filter(Boolean);
-      const res = await createAd({ type, title, description, city, category_id: categoryId ? Number(categoryId) : undefined, image_urls, images: imageFiles });
+      const res = await createAd({
+        type,
+        title,
+        description,
+        city,
+        category_id: categoryId ? Number(categoryId) : undefined,
+        images: imageFiles,
+      });
       setMessage(res.message);
       setTitle("");
       setDescription("");
-      setImages("");
+      setCity("");
+      setCategoryId("");
       setImageFiles([]);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Ошибка создания объявления");
@@ -35,18 +57,31 @@ export default function NewAdPage() {
     <section className="card authCard">
       <h1 className="h1">Новое объявление</h1>
       <form className="authForm" onSubmit={onSubmit}>
-        <select className="select" value={type} onChange={(e) => setType(e.target.value)}>
+        <select className="select" value={type} onChange={(e) => setType(e.target.value)} required>
           <option value="service">service</option>
           <option value="cabinet">cabinet</option>
           <option value="salon">salon</option>
         </select>
         <input className="input" placeholder="Заголовок" value={title} onChange={(e) => setTitle(e.target.value)} required />
         <textarea className="textarea" placeholder="Описание" value={description} onChange={(e) => setDescription(e.target.value)} required />
-        <input className="input" placeholder="Город" value={city} onChange={(e) => setCity(e.target.value)} />
-        <input className="input" placeholder="Category ID" value={categoryId} onChange={(e) => setCategoryId(e.target.value)} />
-        <textarea className="textarea" placeholder="Ссылки на изображения, по одной в строке" value={images} onChange={(e) => setImages(e.target.value)} />
+        <input className="input" placeholder="Город" value={city} onChange={(e) => setCity(e.target.value)} required />
+        <select className="select" value={categoryId} onChange={(e) => setCategoryId(e.target.value)} required disabled={loadingCategories}>
+          <option value="">{loadingCategories ? "Загрузка категорий..." : "Выберите категорию"}</option>
+          {categories.map((category) => (
+            <option key={category.ID} value={category.ID}>{category.Name || "Без названия"}</option>
+          ))}
+        </select>
         <input className="input" type="file" accept="image/*" multiple onChange={(e) => setImageFiles(Array.from(e.target.files ?? []))} />
-        {imageFiles.length ? <p className="muted">Выбрано файлов: {imageFiles.length}</p> : null}
+        {imageFiles.length ? (
+          <>
+            <p className="muted">Выбрано файлов: {imageFiles.length}</p>
+            <div className="uploadPreviewGrid">
+              {previews.map((item) => (
+                <img key={`${item.file.name}-${item.file.lastModified}`} src={item.url} alt={item.file.name} className="uploadPreviewImg" />
+              ))}
+            </div>
+          </>
+        ) : null}
         <button className="btn btnPrimary" type="submit">Отправить на модерацию</button>
       </form>
       {message ? <p className="adminOk">{message}</p> : null}

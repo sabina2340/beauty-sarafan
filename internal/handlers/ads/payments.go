@@ -54,11 +54,6 @@ func parseAdPayload(c *gin.Context) (createAdRequest, error) {
 }
 
 func upsertAdImagesFromRequest(tx *gorm.DB, c *gin.Context, adID uint, appendMode bool, imageURLs []string) error {
-	uploader, err := storage.NewService()
-	if err != nil {
-		return err
-	}
-
 	if !appendMode {
 		if err := tx.Where("advertisement_id = ?", adID).Delete(&models.AdImage{}).Error; err != nil {
 			return err
@@ -84,15 +79,21 @@ func upsertAdImagesFromRequest(tx *gorm.DB, c *gin.Context, adID uint, appendMod
 	form, formErr := c.MultipartForm()
 	if formErr == nil && form != nil {
 		files := append(form.File["images[]"], form.File["ads[]"]...)
-		for _, fileHeader := range files {
-			uploaded, uploadErr := uploader.UploadImage(fileHeader, "ads/images")
-			if uploadErr != nil {
-				return uploadErr
-			}
-			if err := tx.Create(&models.AdImage{AdvertisementID: adID, ImageURL: uploaded, SortOrder: sortOrder}).Error; err != nil {
+		if len(files) > 0 {
+			uploader, err := storage.NewService()
+			if err != nil {
 				return err
 			}
-			sortOrder++
+			for _, fileHeader := range files {
+				uploaded, uploadErr := uploader.UploadImage(fileHeader, "ads/images")
+				if uploadErr != nil {
+					return uploadErr
+				}
+				if err := tx.Create(&models.AdImage{AdvertisementID: adID, ImageURL: uploaded, SortOrder: sortOrder}).Error; err != nil {
+					return err
+				}
+				sortOrder++
+			}
 		}
 	}
 

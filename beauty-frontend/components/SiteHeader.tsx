@@ -36,21 +36,21 @@ export function SiteHeader() {
     { href: "/masters", label: "Каталог" },
     { href: "/equipment", label: "Оборудование" },
     ...(canModerate ? [{ href: "/admin", label: "Админ" }] : []),
-    ...(me ? [{ href: "/profile", label: "Профиль" }, { href: "/account/ads", label: "Мои объявления" }] : [{ href: "/login", label: "Вход" }, { href: "/register", label: "Регистрация" }]),
+    ...(me ? [{ href: "/profile", label: "Профиль" }, { href: "/account/ads", label: "Мои объявления" }] : [{ href: "/login", label: "Войти" }, { href: "/register", label: "Регистрация" }]),
   ];
 
   return (
-    <header className="siteHeader">
+    <header className="siteHeader modernHeader">
       <div className="container topBar">
         <button type="button" className="iconBtn" onClick={() => router.back()} aria-label="Назад">←</button>
         <Link href="/" className="brand" aria-label="Сарафан">
           <BrandLogo className="brandLogo" />
           <span>САРАФАН</span>
         </Link>
-        <button type="button" className="iconBtn" onClick={() => setMenuOpen((v) => !v)} aria-label="Меню">⋮</button>
+        <button type="button" className="iconBtn" onClick={() => setMenuOpen((v) => !v)} aria-label="Меню">☰</button>
       </div>
       {menuOpen ? (
-        <nav className="mobileMenu">
+        <nav className="mobileMenu modernMenu">
           {links.map((link) => (
             <Link key={link.href} href={link.href} onClick={() => setMenuOpen(false)}>{link.label}</Link>
           ))}
