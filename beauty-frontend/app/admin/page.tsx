@@ -9,12 +9,16 @@ import {
   approveAd,
   approveUser,
   createCategory,
+  createEquipment,
+  deleteEquipment,
   getAdminAds,
+  getAdminEquipment,
   getAdminMasters,
   rejectAd,
   updateAdByAdmin,
   rejectUser,
   type AdminAd,
+  type AdminEquipmentItem,
   type AdminMaster,
 } from "@/lib/admin-api";
 
@@ -44,6 +48,12 @@ export default function AdminPage() {
   const [categoryGroupName, setCategoryGroupName] = useState("");
   const [categoryGroupTitle, setCategoryGroupTitle] = useState("");
   const [categoryBusiness, setCategoryBusiness] = useState(false);
+
+  const [equipment, setEquipment] = useState<AdminEquipmentItem[]>([]);
+  const [equipmentName, setEquipmentName] = useState("");
+  const [equipmentDescription, setEquipmentDescription] = useState("");
+  const [equipmentContact, setEquipmentContact] = useState("");
+  const [equipmentImage, setEquipmentImage] = useState<File | null>(null);
 
   const statusOptions = useMemo(() => ["pending", "approved", "rejected"] as const, []);
 
@@ -115,6 +125,41 @@ export default function AdminPage() {
   };
 
   const quickRejectReason = (label: string) => window.prompt(`Причина отклонения (${label})`, "") || "";
+
+
+  const loadEquipment = async () => {
+    try {
+      const res = await getAdminEquipment();
+      setEquipment(Array.isArray(res) ? res : []);
+      setOk(`Позиций оборудования: ${Array.isArray(res) ? res.length : 0}`);
+    } catch (e) {
+      setFail(e);
+    }
+  };
+
+  const onCreateEquipment = async (e: FormEvent) => {
+    e.preventDefault();
+    if (!equipmentImage) {
+      setError("Выберите фото оборудования");
+      return;
+    }
+    try {
+      await createEquipment({
+        name: equipmentName,
+        description: equipmentDescription,
+        contact: equipmentContact,
+        image: equipmentImage,
+      });
+      setEquipmentName("");
+      setEquipmentDescription("");
+      setEquipmentContact("");
+      setEquipmentImage(null);
+      setOk("Оборудование добавлено");
+      await loadEquipment();
+    } catch (e) {
+      setFail(e);
+    }
+  };
 
   const startEditAd = (ad: AdminAd) => {
     setEditAdId(ad.id);
@@ -286,6 +331,48 @@ export default function AdminPage() {
           </div>
         ) : null}
       </article>
+
+
+      <article className="card adminCard adminSection">
+        <div className="adminSectionHeader">
+          <h2 className="h3">Каталог оборудования</h2>
+          <button className="btn btnSecondary" onClick={loadEquipment}>Загрузить</button>
+        </div>
+
+        <form className="authForm" onSubmit={onCreateEquipment}>
+          <label className="label" htmlFor="equipment-name">Название</label>
+          <input id="equipment-name" className="input" value={equipmentName} onChange={(e) => setEquipmentName(e.target.value)} placeholder="Например, Лазер диодный" />
+
+          <label className="label" htmlFor="equipment-description">Описание</label>
+          <textarea id="equipment-description" className="textarea" value={equipmentDescription} onChange={(e) => setEquipmentDescription(e.target.value)} required />
+
+          <label className="label" htmlFor="equipment-contact">Контакт для связи</label>
+          <input id="equipment-contact" className="input" value={equipmentContact} onChange={(e) => setEquipmentContact(e.target.value)} required />
+
+          <label className="label" htmlFor="equipment-image">Фото</label>
+          <input id="equipment-image" className="input" type="file" accept="image/*" onChange={(e) => setEquipmentImage(e.target.files?.[0] || null)} required />
+
+          <button className="btn btnPrimary" type="submit">Добавить в каталог</button>
+        </form>
+
+        <div className="adminList">
+          {equipment.map((item) => (
+            <div key={item.id} className="adminItem">
+              <div>
+                <strong>{item.name || "Оборудование"}</strong>
+                <p className="muted">{item.description}</p>
+                <p className="muted">Контакт: {item.contact || "—"}</p>
+                {item.image_url ? <img src={item.image_url} alt={item.name || "equipment"} style={{ width: 90, height: 70, objectFit: "cover", borderRadius: 8 }} /> : null}
+              </div>
+              <div className="adminActions">
+                <button className="btn btnGhost" onClick={async () => { try { await deleteEquipment(item.id); await loadEquipment(); setOk("Позиция удалена"); } catch (e) { setFail(e); } }}>Удалить</button>
+              </div>
+            </div>
+          ))}
+          {equipment.length === 0 ? <p className="muted">Список пуст. Добавьте первую позицию.</p> : null}
+        </div>
+      </article>
+
 
       <article className="card adminCard adminSection">
         <div className="adminSectionHeader">

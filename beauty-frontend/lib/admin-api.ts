@@ -16,6 +16,16 @@ export type AdminMaster = {
   description?: string;
 };
 
+
+
+export type AdminEquipmentItem = {
+  id: number;
+  name: string;
+  description?: string;
+  contact?: string;
+  image_url?: string;
+};
+
 export type AdminAd = {
   id: number;
   user_id: number;
@@ -173,4 +183,41 @@ export async function rejectPayment(paymentId: number) {
     credentials: "include",
   });
   return parseResponse<{ message: string }>(response);
+}
+
+
+export async function getAdminEquipment() {
+  const response = await fetch(`${API_URL}/admin/equipment`, {
+    credentials: "include",
+    cache: "no-store",
+  });
+  return parseResponse<AdminEquipmentItem[]>(response);
+}
+
+export async function createEquipment(payload: {
+  name: string;
+  description: string;
+  contact: string;
+  image: File;
+}) {
+  const formData = new FormData();
+  formData.append("name", payload.name);
+  formData.append("description", payload.description);
+  formData.append("contact", payload.contact);
+  formData.append("image", payload.image);
+
+  const response = await fetch(`${API_URL}/admin/equipment`, {
+    method: "POST",
+    credentials: "include",
+    body: formData,
+  });
+  return parseResponse<AdminEquipmentItem>(response);
+}
+
+export async function deleteEquipment(id: number) {
+  const response = await fetch(`${API_URL}/admin/equipment/${id}`, {
+    method: "DELETE",
+    credentials: "include",
+  });
+  return parseResponse<void>(response);
 }
