@@ -54,7 +54,10 @@ func parseAdPayload(c *gin.Context) (createAdRequest, error) {
 }
 
 func upsertAdImagesFromRequest(tx *gorm.DB, c *gin.Context, adID uint, appendMode bool, imageURLs []string) error {
-	uploader := storage.NewService()
+	uploader, err := storage.NewService()
+	if err != nil {
+		return err
+	}
 
 	if !appendMode {
 		if err := tx.Where("advertisement_id = ?", adID).Delete(&models.AdImage{}).Error; err != nil {
@@ -78,9 +81,9 @@ func upsertAdImagesFromRequest(tx *gorm.DB, c *gin.Context, adID uint, appendMod
 		sortOrder++
 	}
 
-	form, err := c.MultipartForm()
-	if err == nil && form != nil {
-		files := form.File["images[]"]
+	form, formErr := c.MultipartForm()
+	if formErr == nil && form != nil {
+		files := append(form.File["images[]"], form.File["ads[]"]...)
 		for _, fileHeader := range files {
 			uploaded, uploadErr := uploader.UploadImage(fileHeader, "ads/images")
 			if uploadErr != nil {
