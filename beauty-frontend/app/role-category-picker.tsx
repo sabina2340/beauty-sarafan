@@ -34,13 +34,13 @@ export function RoleCategoryPicker({ groups }: Props) {
     <div className="homeBlocks">
       <div className="homeIntro">
         <h1 className="h1">Приветствуем!</h1>
-        <p className="lead">Сарафан — это онлайн-платформа специалистов и клиентов.</p>
+        <p className="lead">Сарафан - это удобная, современная онлайн - платформа, которая объединяет самые топовые услуги для всей семьи и их клиентов.</p>
       </div>
 
       <div className="roleButtons">
         <button type="button" className={`btn ${mode === "offer" ? "btnSecondary" : "btnGhost"}`} onClick={() => setMode("offer")}>✅ Предлагаю услугу</button>
         <button type="button" className={`btn ${mode === "seek" ? "btnSecondary" : "btnGhost"}`} onClick={() => setMode("seek")}>✅ Ищу услугу</button>
-        <button type="button" className={`btn ${mode === "growth" ? "btnSecondary" : "btnGhost"}`} onClick={() => setMode("growth")}>✅ Развитие специалистов и бизнеса</button>
+        <button type="button" className={`btn ${mode === "growth" ? "btnSecondary" : "btnGhost"}`} onClick={() => setMode("growth")}>✅ Для роста и бизнеса</button>
       </div>
 
       <div className="manualGroups">
