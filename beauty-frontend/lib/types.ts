@@ -37,3 +37,13 @@ export type Advertisement = {
 export type ApiError = {
   error: string;
 };
+
+
+export type EquipmentItem = {
+  id: number;
+  name: string;
+  description?: string;
+  contact?: string;
+  image_url?: string;
+  price?: number | null;
+};

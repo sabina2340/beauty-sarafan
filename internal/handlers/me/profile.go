@@ -108,7 +108,11 @@ func PutProfile(c *gin.Context) {
 		return
 	}
 
-	uploader := storage.NewService()
+	uploader, err := storage.NewService()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "storage is not configured"})
+		return
+	}
 	avatarHeader, _ := c.FormFile("avatar")
 
 	var profile models.MasterProfile
