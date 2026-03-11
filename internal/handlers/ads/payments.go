@@ -54,7 +54,10 @@ func parseAdPayload(c *gin.Context) (createAdRequest, error) {
 }
 
 func upsertAdImagesFromRequest(tx *gorm.DB, c *gin.Context, adID uint, appendMode bool, imageURLs []string) error {
-	uploader := storage.NewService()
+	uploader, err := storage.NewService()
+	if err != nil {
+		return err
+	}
 
 	if !appendMode {
 		if err := tx.Where("advertisement_id = ?", adID).Delete(&models.AdImage{}).Error; err != nil {
@@ -78,9 +81,9 @@ func upsertAdImagesFromRequest(tx *gorm.DB, c *gin.Context, adID uint, appendMod
 		sortOrder++
 	}
 
-	form, err := c.MultipartForm()
-	if err == nil && form != nil {
-		files := form.File["images[]"]
+	form, formErr := c.MultipartForm()
+	if formErr == nil && form != nil {
+		files := append(form.File["images[]"], form.File["ads[]"]...)
 		for _, fileHeader := range files {
 			uploaded, uploadErr := uploader.UploadImage(fileHeader, "ads/images")
 			if uploadErr != nil {
@@ -390,7 +393,11 @@ func HotOffers(c *gin.Context) {
 			COALESCE((SELECT ai.image_url FROM ad_images ai WHERE ai.advertisement_id = a.id ORDER BY ai.sort_order asc, ai.id asc LIMIT 1), '') AS image_url`).
 		Joins("LEFT JOIN payments p ON p.advertisement_id = a.id AND p.status = 'confirmed'").
 		Joins("LEFT JOIN tariffs t ON t.id = p.tariff_id").
-		Where("(a.status = ? OR p.id IS NOT NULL) AND COALESCE(a.expires_at, p.paid_at + (t.duration_days || ' days')::interval) > ?", models.AdStatusActive, now).
+		Where(`
+			(a.status = ? AND (a.expires_at IS NULL OR a.expires_at > ?))
+			OR
+			(p.id IS NOT NULL AND COALESCE(a.expires_at, p.paid_at + (t.duration_days || ' days')::interval) > ?)
+		`, models.AdStatusActive, now, now).
 		Order("COALESCE(a.activated_at, p.paid_at) desc").
 		Group("a.id, p.paid_at, t.duration_days").
 		Find(&rows).Error
@@ -418,7 +425,11 @@ func ActiveAds(c *gin.Context) {
 			COALESCE((SELECT ai.image_url FROM ad_images ai WHERE ai.advertisement_id = a.id ORDER BY ai.sort_order asc, ai.id asc LIMIT 1), '') AS image_url`).
 		Joins("LEFT JOIN payments p ON p.advertisement_id = a.id AND p.status = 'confirmed'").
 		Joins("LEFT JOIN tariffs t ON t.id = p.tariff_id").
-		Where("(a.status = ? OR p.id IS NOT NULL) AND COALESCE(a.expires_at, p.paid_at + (t.duration_days || ' days')::interval) > ?", models.AdStatusActive, now).
+		Where(`
+			(a.status = ? AND (a.expires_at IS NULL OR a.expires_at > ?))
+			OR
+			(p.id IS NOT NULL AND COALESCE(a.expires_at, p.paid_at + (t.duration_days || ' days')::interval) > ?)
+		`, models.AdStatusActive, now, now).
 		Order("COALESCE(a.activated_at, p.paid_at) desc").
 		Group("a.id, p.paid_at, t.duration_days").
 		Limit(limit).

@@ -34,6 +34,7 @@ export function SiteHeader() {
     { href: "/", label: "Главная" },
     { href: "/hot-offers", label: "Горячие предложения" },
     { href: "/masters", label: "Каталог" },
+    { href: "/equipment", label: "Оборудование" },
     ...(canModerate ? [{ href: "/admin", label: "Админ" }] : []),
     ...(me ? [{ href: "/profile", label: "Профиль" }, { href: "/account/ads", label: "Мои объявления" }] : [{ href: "/login", label: "Вход" }, { href: "/register", label: "Регистрация" }]),
   ];
@@ -46,7 +47,7 @@ export function SiteHeader() {
           <BrandLogo className="brandLogo" />
           <span>САРАФАН</span>
         </Link>
-        <button type="button" className="iconBtn" onClick={() => setMenuOpen((v) => !v)} aria-label="Меню">⋮</button>
+        <button type="button" className="iconBtn" onClick={() => setMenuOpen((v) => !v)} aria-label="Меню">☰</button>
       </div>
       {menuOpen ? (
         <nav className="mobileMenu">

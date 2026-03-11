@@ -106,9 +106,12 @@ func RegisterRoutes(r *gin.Engine, db *gorm.DB) {
 		adminGroup.GET("/payments/pending", ads.AdminPendingPayments)
 		adminGroup.POST("/payments/:id/confirm", ads.AdminConfirmPayment)
 		adminGroup.POST("/payments/:id/reject", ads.AdminRejectPayment)
-	}
 
-	r.Static("/uploads", "./uploads")
+		adminGroup.GET("/equipment", admin.ListEquipment)
+		adminGroup.POST("/equipment", admin.CreateEquipment)
+		adminGroup.PUT("/equipment/:id", admin.UpdateEquipment)
+		adminGroup.DELETE("/equipment/:id", admin.DeleteEquipment)
+	}
 
 	r.GET("/", func(c *gin.Context) {
 		c.JSON(200, gin.H{"status": "ok"})

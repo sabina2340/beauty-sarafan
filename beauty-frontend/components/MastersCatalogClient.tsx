@@ -5,6 +5,8 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { getMasters } from "@/lib/api";
 import { MasterCard as Master } from "@/lib/types";
 import { MasterCard } from "@/components/MasterCard";
+import { Input } from "@/components/ui/Input";
+import { Button } from "@/components/ui/Button";
 
 export function MastersCatalogClient() {
   const router = useRouter();
@@ -44,13 +46,13 @@ export function MastersCatalogClient() {
   return (
     <section>
       <h1 className="h1">Каталог мастеров</h1>
-      <p className="lead">Выберите мастера и свяжитесь с ним в 1 клик.</p>
+      <p className="lead">Выберите специалиста и откройте подробный профиль.</p>
 
       <form className="filters" onSubmit={(e) => e.preventDefault()}>
-        <input value={slug} onChange={(e) => updateFilters({ slug: e.target.value })} placeholder="Категория (slug)" />
-        <input value={city} onChange={(e) => updateFilters({ city: e.target.value })} placeholder="Город" />
-        <input value={q} onChange={(e) => updateFilters({ q: e.target.value })} placeholder="Имя мастера" />
-        <button type="button" className="btn btnGhost" onClick={() => router.replace(pathname)}>Сбросить</button>
+        <Input value={slug} onChange={(e) => updateFilters({ slug: e.target.value })} placeholder="Категория (slug)" />
+        <Input value={city} onChange={(e) => updateFilters({ city: e.target.value })} placeholder="Город" />
+        <Input value={q} onChange={(e) => updateFilters({ q: e.target.value })} placeholder="Имя мастера" />
+        <Button type="button" variant="secondary" onClick={() => router.replace(pathname)}>Сбросить фильтры</Button>
       </form>
 
       {loading ? <p className="muted">Загрузка...</p> : null}

@@ -1,6 +1,9 @@
 import { Advertisement } from "@/lib/types";
 
-const API_URL = "/api";
+const API_URL =
+  typeof window === "undefined"
+    ? (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080")
+    : "/api";
 
 async function parseResponse<T>(response: Response): Promise<T> {
   if (!response.ok) {

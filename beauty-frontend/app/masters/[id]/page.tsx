@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { getMasterAds, getMasterById } from "@/lib/api";
+import { Card } from "@/components/ui/Card";
+import { Badge } from "@/components/ui/Badge";
+import { ButtonLink } from "@/components/ui/Button";
 
 type Props = {
   params: { id: string };
@@ -32,27 +34,23 @@ export default async function MasterDetailPage({ params, searchParams }: Props) 
 
     return (
       <section className="masterPage">
-        <Link href={backHref} className="btn btnGhost">← Назад к каталогу</Link>
+        <ButtonLink href={backHref} variant="ghost">Назад к каталогу</ButtonLink>
 
-        <article className="card masterHeroCard">
+        <Card className="masterHeroCard">
           <div className="masterTop">
             <img src={master.avatar_url || "/logo-placeholder.svg"} alt={master.full_name || "Мастер"} className="masterAvatar" />
             <div className="masterHeadInfo">
               <h1>{master.full_name || master.login}</h1>
               <div className="badgeRow">
-                <span className="badge badgeBlue">{master.category_name || "Категория"}</span>
-                <span className="badge badgeGreen">✓ Проверен</span>
+                <Badge className="badgeBlue">{master.category_name || "Категория"}</Badge>
+                <Badge className="badgeGreen">Проверен</Badge>
               </div>
-              <p className="meta">📍 г. {master.city || "Не указан"}</p>
-              <div className="actionRow">
-                <a className="btn btnPrimary" href={`tel:${master.phone || ""}`}>📞 Позвонить</a>
-                <a className="btn btnSecondary" href={master.social_links || "#"}>✈ Написать</a>
-              </div>
+              <p className="meta">г. {master.city || "Не указан"}</p>
             </div>
           </div>
 
           <div className="divider" />
-          <h2>О мастере</h2>
+          <h2 className="sectionTitle">О мастере</h2>
           <p>{master.description || "Описание пока не добавлено"}</p>
 
           {services.length > 0 ? (
@@ -62,12 +60,12 @@ export default async function MasterDetailPage({ params, searchParams }: Props) 
           ) : null}
 
           <div className="divider" />
-          <h2>Контакты</h2>
-          <p>📞 {master.phone || "не указан"}</p>
-          <p>🔗 {master.social_links || "соцсети не указаны"}</p>
+          <h2 className="sectionTitle">Контакты</h2>
+          <p>Телефон: {master.phone || "не указан"}</p>
+          <p>Соцсети: {master.social_links || "не указаны"}</p>
 
           <div className="divider" />
-          <h2>Галерея работ</h2>
+          <h2 className="sectionTitle">Примеры работ</h2>
           {master.work_images && master.work_images.length > 0 ? (
             <div className="workGrid">
               {master.work_images.map((imageUrl) => (
@@ -77,15 +75,11 @@ export default async function MasterDetailPage({ params, searchParams }: Props) 
               ))}
             </div>
           ) : <p>Примеры работ пока не загружены</p>}
-
-          <div className="ctaRow" style={{ marginTop: 20 }}>
-            <button type="button" className="btn btnPrimary">Записаться</button>
-          </div>
-        </article>
+        </Card>
 
         {ads.length > 0 ? (
-          <article className="card">
-            <h2>Объявления мастера</h2>
+          <Card>
+            <h2 className="sectionTitle">Объявления мастера</h2>
             <ul className="adsList">
               {ads.map((ad) => (
                 <li key={ad.id}>
@@ -94,7 +88,7 @@ export default async function MasterDetailPage({ params, searchParams }: Props) 
                 </li>
               ))}
             </ul>
-          </article>
+          </Card>
         ) : null}
       </section>
     );
