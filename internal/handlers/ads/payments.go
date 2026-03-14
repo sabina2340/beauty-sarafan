@@ -389,18 +389,26 @@ func HotOffers(c *gin.Context) {
 	var rows []map[string]interface{}
 	err := database.DB.Table("advertisements a").
 		Select(`a.id, a.type, a.title, a.description, a.city,
-			COALESCE(a.activated_at, p.paid_at) as activated_at,
+			COALESCE(a.activated_at, p.paid_at, a.created_at) as activated_at,
 			COALESCE(a.expires_at, p.paid_at + (t.duration_days || ' days')::interval) as expires_at,
 			COALESCE((SELECT ai.image_url FROM ad_images ai WHERE ai.advertisement_id = a.id ORDER BY ai.sort_order asc, ai.id asc LIMIT 1), '') AS image_url`).
-		Joins("LEFT JOIN payments p ON p.advertisement_id = a.id AND p.status = 'confirmed'").
+		Joins(`LEFT JOIN LATERAL (
+			SELECT pay.id, pay.paid_at, pay.tariff_id
+			FROM payments pay
+			WHERE pay.advertisement_id = a.id AND pay.status = 'confirmed'
+			ORDER BY pay.paid_at DESC NULLS LAST, pay.id DESC
+			LIMIT 1
+		) p ON true`).
 		Joins("LEFT JOIN tariffs t ON t.id = p.tariff_id").
 		Where(`
+			(a.status = ?)
+			OR
 			(a.status = ? AND (a.expires_at IS NULL OR a.expires_at > ?))
 			OR
 			(p.id IS NOT NULL AND COALESCE(a.expires_at, p.paid_at + (t.duration_days || ' days')::interval) > ?)
-		`, models.AdStatusActive, now, now).
-		Order("COALESCE(a.activated_at, p.paid_at) desc").
-		Group("a.id, p.paid_at, t.duration_days").
+		`, models.AdStatusApproved, models.AdStatusActive, now, now).
+		Order("COALESCE(a.activated_at, p.paid_at, a.created_at) desc").
+		Group("a.id, p.id, p.paid_at, t.duration_days").
 		Find(&rows).Error
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to load offers"})
@@ -421,18 +429,26 @@ func ActiveAds(c *gin.Context) {
 	var rows []map[string]interface{}
 	err := database.DB.Table("advertisements a").
 		Select(`a.id, a.type, a.title, a.description, a.city,
-			COALESCE(a.activated_at, p.paid_at) as activated_at,
+			COALESCE(a.activated_at, p.paid_at, a.created_at) as activated_at,
 			COALESCE(a.expires_at, p.paid_at + (t.duration_days || ' days')::interval) as expires_at,
 			COALESCE((SELECT ai.image_url FROM ad_images ai WHERE ai.advertisement_id = a.id ORDER BY ai.sort_order asc, ai.id asc LIMIT 1), '') AS image_url`).
-		Joins("LEFT JOIN payments p ON p.advertisement_id = a.id AND p.status = 'confirmed'").
+		Joins(`LEFT JOIN LATERAL (
+			SELECT pay.id, pay.paid_at, pay.tariff_id
+			FROM payments pay
+			WHERE pay.advertisement_id = a.id AND pay.status = 'confirmed'
+			ORDER BY pay.paid_at DESC NULLS LAST, pay.id DESC
+			LIMIT 1
+		) p ON true`).
 		Joins("LEFT JOIN tariffs t ON t.id = p.tariff_id").
 		Where(`
+			(a.status = ?)
+			OR
 			(a.status = ? AND (a.expires_at IS NULL OR a.expires_at > ?))
 			OR
 			(p.id IS NOT NULL AND COALESCE(a.expires_at, p.paid_at + (t.duration_days || ' days')::interval) > ?)
-		`, models.AdStatusActive, now, now).
-		Order("COALESCE(a.activated_at, p.paid_at) desc").
-		Group("a.id, p.paid_at, t.duration_days").
+		`, models.AdStatusApproved, models.AdStatusActive, now, now).
+		Order("COALESCE(a.activated_at, p.paid_at, a.created_at) desc").
+		Group("a.id, p.id, p.paid_at, t.duration_days").
 		Limit(limit).
 		Find(&rows).Error
 	if err != nil {
