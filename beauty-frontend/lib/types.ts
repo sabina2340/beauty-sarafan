@@ -32,6 +32,7 @@ export type Advertisement = {
   category_id?: number;
   status: string;
   rejection_reason?: string;
+  created_at?: string;
 };
 
 export type ApiError = {

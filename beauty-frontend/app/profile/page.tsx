@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { FormEvent, useEffect, useMemo, useState } from "react";
-import { acceptPersonalDataConsent, authMe, getMyProfile, upsertMyProfile, type AuthMe, type MyMasterProfile } from "@/lib/auth-api";
+import { acceptPersonalDataConsent, authMe, getMyProfile, getPersonalDataConsent, upsertMyProfile, type AuthMe, type MyMasterProfile } from "@/lib/auth-api";
 
 type Category = { ID: number; Name: string };
 
@@ -36,6 +36,8 @@ export default function ProfilePage() {
   const [socialLinks, setSocialLinks] = useState("");
   const [avatar, setAvatar] = useState<File | null>(null);
   const [works, setWorks] = useState<File[]>([]);
+  const [consentChecked, setConsentChecked] = useState(false);
+  const [consentAcceptedAt, setConsentAcceptedAt] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -54,10 +56,12 @@ export default function ProfilePage() {
           return;
         }
 
-        const p = await getMyProfile();
+        const [p, consent] = await Promise.all([getMyProfile(), getPersonalDataConsent()]);
         if (!active) return;
 
         setProfile(p);
+        setConsentChecked(Boolean(consent.accepted));
+        setConsentAcceptedAt(consent.accepted_at ?? null);
         const presetCategory = new URLSearchParams(window.location.search).get("category_id") || "";
 
         if (p) {
@@ -102,8 +106,16 @@ export default function ProfilePage() {
       return;
     }
 
+    if (!consentChecked) {
+      setError("Подтвердите согласие на обработку персональных данных");
+      return;
+    }
+
     try {
-      await acceptPersonalDataConsent();
+      if (!consentAcceptedAt) {
+        const consent = await acceptPersonalDataConsent();
+        setConsentAcceptedAt(consent.accepted_at ?? new Date().toISOString());
+      }
       const saved = await upsertMyProfile({
         category_id: Number(categoryId),
         full_name: fullName.trim(),
@@ -222,6 +234,21 @@ export default function ProfilePage() {
 
           <label className="label" htmlFor="works">Примеры работ</label>
           <input id="works" type="file" className="input" accept="image/*" multiple onChange={(e) => setWorks(Array.from(e.target.files ?? []))} />
+
+          <label className="label" htmlFor="consent" style={{ display: "flex", alignItems: "flex-start", gap: 8, fontWeight: 500 }}>
+            <input
+              id="consent"
+              type="checkbox"
+              checked={consentChecked}
+              disabled={Boolean(consentAcceptedAt)}
+              onChange={(e) => setConsentChecked(e.target.checked)}
+              style={{ marginTop: 4 }}
+            />
+            <span>
+              Я даю согласие на обработку персональных данных.
+              {consentAcceptedAt ? ` Согласие уже сохранено (${new Date(consentAcceptedAt).toLocaleDateString()}).` : ""}
+            </span>
+          </label>
 
           <button type="submit" className="btn btnPrimary">Сохранить и отправить на проверку</button>
           {profile ? <button type="button" className="btn btnGhost" onClick={() => setEditMode(false)}>Отменить редактирование</button> : null}

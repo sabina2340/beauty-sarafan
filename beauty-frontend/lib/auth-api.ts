@@ -85,7 +85,15 @@ export async function acceptPersonalDataConsent() {
     method: "POST",
     credentials: "include",
   });
-  return parseJson<{ message: string }>(response);
+  return parseJson<{ message: string; accepted_at?: string }>(response);
+}
+
+export async function getPersonalDataConsent() {
+  const response = await fetch(`${API_URL}/me/consents/personal-data`, {
+    credentials: "include",
+    cache: "no-store",
+  });
+  return parseJson<{ accepted: boolean; accepted_at?: string }>(response);
 }
 
 export async function upsertMyProfile(payload: {

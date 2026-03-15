@@ -388,7 +388,7 @@ func HotOffers(c *gin.Context) {
 	now := time.Now()
 	var rows []map[string]interface{}
 	err := database.DB.Table("advertisements a").
-		Select(`a.id, a.type, a.title, a.description, a.city,
+		Select(`a.id, a.user_id, a.type, a.title, a.description, a.city,
 			COALESCE(a.activated_at, p.paid_at, a.created_at) as activated_at,
 			COALESCE(a.expires_at, p.paid_at + (t.duration_days || ' days')::interval) as expires_at,
 			COALESCE((SELECT ai.image_url FROM ad_images ai WHERE ai.advertisement_id = a.id ORDER BY ai.sort_order asc, ai.id asc LIMIT 1), '') AS image_url`).
@@ -428,7 +428,7 @@ func ActiveAds(c *gin.Context) {
 	now := time.Now()
 	var rows []map[string]interface{}
 	err := database.DB.Table("advertisements a").
-		Select(`a.id, a.type, a.title, a.description, a.city,
+		Select(`a.id, a.user_id, a.type, a.title, a.description, a.city,
 			COALESCE(a.activated_at, p.paid_at, a.created_at) as activated_at,
 			COALESCE(a.expires_at, p.paid_at + (t.duration_days || ' days')::interval) as expires_at,
 			COALESCE((SELECT ai.image_url FROM ad_images ai WHERE ai.advertisement_id = a.id ORDER BY ai.sort_order asc, ai.id asc LIMIT 1), '') AS image_url`).

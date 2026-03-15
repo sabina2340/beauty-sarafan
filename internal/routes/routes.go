@@ -37,6 +37,7 @@ func RegisterRoutes(r *gin.Engine, db *gorm.DB) {
 		meGroup.PUT("/profile", middleware.RequireRole(models.RoleUser), me.PutProfile)
 		meGroup.PUT("/password", me.PutPassword)
 		meGroup.PUT("/login", me.PutLogin)
+		meGroup.GET("/consents/personal-data", me.GetPersonalDataConsent)
 		meGroup.POST("/consents/personal-data", me.PostPersonalDataConsent)
 
 		meAds := meGroup.Group("/ads")
