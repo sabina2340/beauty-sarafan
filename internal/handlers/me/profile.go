@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -22,9 +23,27 @@ type ProfileUpsertRequest struct {
 	SocialLinks string
 }
 
+type WorkImageResponse struct {
+	ImageURL  string `json:"image_url"`
+	SortOrder int    `json:"sort_order"`
+}
+
 type ProfileResponse struct {
-	models.MasterProfile
-	WorkImages []models.MasterWorkImage `json:"work_images"`
+	ID              uint                `json:"id"`
+	UserID          uint                `json:"user_id"`
+	CategoryID      uint                `json:"category_id"`
+	FullName        string              `json:"full_name"`
+	Description     string              `json:"description"`
+	Services        string              `json:"services"`
+	Phone           string              `json:"phone"`
+	City            string              `json:"city"`
+	SocialLinks     string              `json:"social_links"`
+	AvatarURL       string              `json:"avatar_url"`
+	Status          string              `json:"status"`
+	RejectionReason *string             `json:"rejection_reason"`
+	CreatedAt       time.Time           `json:"created_at"`
+	UpdatedAt       time.Time           `json:"updated_at"`
+	WorkImages      []WorkImageResponse `json:"work_images"`
 }
 
 func validateProfileUpsert(req *ProfileUpsertRequest) string {
@@ -65,7 +84,27 @@ func hasPersonalDataConsent(userID uint) bool {
 func loadProfileResponse(profile models.MasterProfile) (ProfileResponse, error) {
 	var works []models.MasterWorkImage
 	err := database.DB.Where("master_profile_id = ?", profile.ID).Order("sort_order asc, id asc").Find(&works).Error
-	return ProfileResponse{MasterProfile: profile, WorkImages: works}, err
+	resp := ProfileResponse{
+		ID:              profile.ID,
+		UserID:          profile.UserID,
+		CategoryID:      profile.CategoryID,
+		FullName:        profile.FullName,
+		Description:     profile.Description,
+		Services:        profile.Services,
+		Phone:           profile.Phone,
+		City:            profile.City,
+		SocialLinks:     profile.SocialLinks,
+		AvatarURL:       profile.AvatarURL,
+		Status:          profile.Status,
+		RejectionReason: profile.RejectionReason,
+		CreatedAt:       profile.CreatedAt,
+		UpdatedAt:       profile.UpdatedAt,
+		WorkImages:      make([]WorkImageResponse, 0, len(works)),
+	}
+	for _, item := range works {
+		resp.WorkImages = append(resp.WorkImages, WorkImageResponse{ImageURL: item.ImageURL, SortOrder: item.SortOrder})
+	}
+	return resp, err
 }
 
 func GetProfile(c *gin.Context) {

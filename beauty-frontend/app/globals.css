@@ -13,7 +13,7 @@
 * { box-sizing: border-box; }
 body { margin: 0; font-family: Inter, system-ui, Arial, sans-serif; background: var(--bg); color: var(--text); }
 img { max-width: 100%; display: block; }
-.container { width: min(1100px, calc(100% - 24px)); margin: 0 auto; }
+.container { width: min(560px, calc(100% - 16px)); margin: 0 auto; }
 .page { padding: 86px 0 100px; }
 
 .siteHeader { position: fixed; top: 0; left: 0; right: 0; background: var(--yellow); z-index: 50; border-bottom: 1px solid var(--line); }
@@ -30,7 +30,7 @@ img { max-width: 100%; display: block; }
 .siteFooter { padding: 20px 0 90px; color: var(--muted); text-align: center; }
 
 .card { background: #fff; border: 1px solid var(--line); border-radius: 22px; padding: 16px; box-shadow: 0 8px 20px rgba(0,0,0,.06); }
-.h1 { margin: 0 0 10px; text-align: center; font-size: clamp(36px, 8vw, 70px); font-weight: 900; line-height: .95; }
+.h1 { margin: 0 0 10px; text-align: center; font-size: clamp(30px, 9vw, 46px); font-weight: 900; line-height: .98; }
 .h2 { margin: 10px 0; text-align: center; font-size: clamp(32px, 7vw, 46px); font-weight: 800; }
 .lead, .muted { text-align: center; color: var(--muted); font-size: 16px; line-height: 1.45; }
 .center { text-align: center; }
@@ -80,6 +80,16 @@ img { max-width: 100%; display: block; }
 .label { font-weight: 700; margin-top: 2px; }
 .authHint a { color: var(--blue); font-weight: 700; text-decoration: none; }
 .profileStatus { margin: 12px 0; padding: 10px 12px; border: 1px solid var(--line); border-radius: 12px; background: #fff; }
+.noticeBox { border-radius: 14px; padding: 10px 12px; margin: 8px 0; border: 1px solid var(--line); background: #fff; }
+.noticeBox p { margin: 6px 0 0; }
+.noticeDanger { background: #fff5f5; border-color: #f2baba; color: #7f1f1f; }
+.noticeOk { background: #f3fff2; border-color: #b8e4b5; color: #1f5a1f; }
+.hiddenFileInput { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+.fileBtn { min-height: 46px; }
+.fileHint { margin: -4px 0 2px; color: var(--muted); font-size: 14px; }
+.consentRow { display: flex; align-items: flex-start; gap: 8px; font-weight: 500; }
+.consentRow input { margin-top: 4px; }
+
 
 .adminPage { display: grid; gap: 12px; }
 .adminGrid { display: grid; gap: 12px; }
@@ -236,12 +246,14 @@ img { max-width: 100%; display: block; }
 }
 
 @media (max-width: 480px) {
-  .h1 { font-size: 34px; }
+  .h1 { font-size: 32px; }
   .brand { font-size: 22px; }
   .brandLogo { width: 38px; height: 38px; }
-  .container { width: calc(100% - 20px); }
+  .container { width: calc(100% - 12px); }
   .card { border-radius: 16px; padding: 12px; }
   .equipmentImg { height: 160px; }
+  .page { padding-top: 78px; }
+  .topBar { height: 60px; }
 }
 
 @media (min-width: 900px) {
