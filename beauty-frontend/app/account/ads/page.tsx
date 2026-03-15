@@ -2,20 +2,21 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { getMyAds, markPaid } from "@/lib/ads-api";
+import { getMyAds, markPaid, type MyAdItem } from "@/lib/ads-api";
 import { authMe, getMyProfile, type MyMasterProfile } from "@/lib/auth-api";
 
 export default function MyAdsPage() {
-  const [ads, setAds] = useState<any[]>([]);
+  const [ads, setAds] = useState<MyAdItem[]>([]);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
   const [authorized, setAuthorized] = useState(false);
   const [profile, setProfile] = useState<MyMasterProfile | null>(null);
+  const [adsAccessBlocked, setAdsAccessBlocked] = useState(false);
 
-  const loadAds = () =>
-    getMyAds()
-      .then(setAds)
-      .catch((e) => setError(e.message));
+  const loadAds = async () => {
+    const items = await getMyAds();
+    setAds(items);
+  };
 
   useEffect(() => {
     let active = true;
@@ -32,24 +33,23 @@ export default function MyAdsPage() {
 
         setAuthorized(true);
 
-        const currentProfile = await getMyProfile();
-        if (!active) return;
+        const currentProfilePromise = getMyProfile().catch(() => null);
 
-        setProfile(currentProfile);
-
-        if (!currentProfile || currentProfile.status !== "approved") {
-          return;
-        }
-
-        await loadAds();
-      } catch (e) {
-        if (active) {
+        try {
+          await loadAds();
+          if (!active) return;
+          setAdsAccessBlocked(false);
+        } catch (e) {
+          if (!active) return;
+          setAdsAccessBlocked(true);
           setError(e instanceof Error ? e.message : "Ошибка загрузки");
         }
+
+        const currentProfile = await currentProfilePromise;
+        if (!active) return;
+        setProfile(currentProfile);
       } finally {
-        if (active) {
-          setLoading(false);
-        }
+        if (active) setLoading(false);
       }
     })();
 
@@ -81,11 +81,11 @@ export default function MyAdsPage() {
     );
   }
 
-  if (!profile) {
+  if (adsAccessBlocked) {
     return (
       <section className="card">
         <h1 className="h1">Мои объявления</h1>
-        <p className="adminError">Сначала заполните профиль мастера.</p>
+        <p className="adminError">{error || "Чтобы работать с объявлениями, профиль мастера должен быть одобрен."}</p>
         <p>
           <Link className="btn btnPrimary" href="/profile">
             Перейти в профиль
@@ -95,27 +95,15 @@ export default function MyAdsPage() {
     );
   }
 
-  if (profile.status !== "approved") {
-    return (
-      <section className="card">
-        <h1 className="h1">Мои объявления</h1>
-        <p className="adminError">
-          {profile.status === "pending"
-            ? "Профиль мастера на модерации. После одобрения можно создавать объявления."
-            : `Профиль отклонён. ${profile.rejection_reason ?? "Исправьте данные и отправьте снова."}`}
-        </p>
-        <p>
-          <Link className="btn btnPrimary" href="/profile">
-            Исправить профиль
-          </Link>
-        </p>
-      </section>
-    );
-  }
-
   return (
     <section className="card">
       <h1 className="h1">Мои объявления</h1>
+      {profile && profile.status !== "approved" ? (
+        <p className="muted">
+          Статус профиля: {profile.status === "pending" ? "на модерации" : "требует исправлений"}. Если объявления уже доступны,
+          значит профиль в системе одобрен и статус скоро синхронизируется.
+        </p>
+      ) : null}
       <p>
         <Link className="btn btnPrimary" href="/account/ads/new">
           + Создать объявление
@@ -125,7 +113,7 @@ export default function MyAdsPage() {
         <article key={ad.id} className="adminItem">
           <strong>{ad.title}</strong>
           <p className="muted">
-            {ad.type} · {ad.status} · {new Date(ad.created_at).toLocaleDateString()}
+            {ad.type} · {ad.status} · {new Date(ad.created_at || Date.now()).toLocaleDateString()}
           </p>
           {ad.expires_at ? <p>До: {new Date(ad.expires_at).toLocaleDateString()}</p> : null}
           {ad.rejection_reason ? <p className="adminError">Причина: {ad.rejection_reason}</p> : null}
@@ -143,7 +131,7 @@ export default function MyAdsPage() {
             {ad.last_payment_id ? (
               <button
                 className="btn btnGhost"
-                onClick={() => markPaid(ad.last_payment_id, "Оплатил, проверьте пожалуйста").then(loadAds)}
+                onClick={() => markPaid(ad.last_payment_id!, "Оплатил, проверьте пожалуйста").then(loadAds)}
               >
                 Я оплатил
               </button>

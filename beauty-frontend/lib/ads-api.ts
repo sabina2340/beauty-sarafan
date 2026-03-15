@@ -23,6 +23,7 @@ export type Tariff = {
 
 export type ActiveAdCard = {
   id: number;
+  user_id?: number;
   type: string;
   title: string;
   description: string;

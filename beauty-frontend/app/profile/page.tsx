@@ -1,10 +1,22 @@
 "use client";
 
 import Link from "next/link";
-import { FormEvent, useEffect, useState } from "react";
-import { acceptPersonalDataConsent, authMe, getMyProfile, upsertMyProfile, type AuthMe, type MyMasterProfile } from "@/lib/auth-api";
+import { FormEvent, useEffect, useMemo, useState } from "react";
+import { acceptPersonalDataConsent, authMe, getMyProfile, getPersonalDataConsent, upsertMyProfile, type AuthMe, type MyMasterProfile } from "@/lib/auth-api";
 
 type Category = { ID: number; Name: string };
+
+const statusMap: Record<MyMasterProfile["status"], string> = {
+  pending: "На модерации",
+  approved: "Одобрен",
+  rejected: "Отклонён",
+};
+
+const roleMap: Record<NonNullable<AuthMe>["role"], string> = {
+  admin: "Администратор",
+  moderator: "Модератор",
+  user: "Пользователь",
+};
 
 export default function ProfilePage() {
   const [me, setMe] = useState<AuthMe | null>(null);
@@ -13,6 +25,7 @@ export default function ProfilePage() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [loading, setLoading] = useState(true);
+  const [editMode, setEditMode] = useState(false);
 
   const [categoryId, setCategoryId] = useState("");
   const [fullName, setFullName] = useState("");
@@ -23,6 +36,8 @@ export default function ProfilePage() {
   const [socialLinks, setSocialLinks] = useState("");
   const [avatar, setAvatar] = useState<File | null>(null);
   const [works, setWorks] = useState<File[]>([]);
+  const [consentChecked, setConsentChecked] = useState(false);
+  const [consentAcceptedAt, setConsentAcceptedAt] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -41,11 +56,14 @@ export default function ProfilePage() {
           return;
         }
 
-        const p = await getMyProfile();
+        const [p, consent] = await Promise.all([getMyProfile(), getPersonalDataConsent()]);
         if (!active) return;
 
         setProfile(p);
+        setConsentChecked(Boolean(consent.accepted));
+        setConsentAcceptedAt(consent.accepted_at ?? null);
         const presetCategory = new URLSearchParams(window.location.search).get("category_id") || "";
+
         if (p) {
           setCategoryId(String(p.category_id ?? presetCategory));
           setFullName(p.full_name ?? "");
@@ -56,6 +74,9 @@ export default function ProfilePage() {
           setSocialLinks(p.social_links ?? "");
         } else if (presetCategory) {
           setCategoryId(presetCategory);
+          setEditMode(true);
+        } else {
+          setEditMode(true);
         }
       })
       .catch((err) => {
@@ -70,6 +91,10 @@ export default function ProfilePage() {
     };
   }, []);
 
+  const categoryName = useMemo(
+    () => categories.find((c) => String(c.ID) === String(profile?.category_id ?? categoryId))?.Name ?? "Категория не выбрана",
+    [categories, profile?.category_id, categoryId],
+  );
 
   const onSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -77,12 +102,20 @@ export default function ProfilePage() {
     setSuccess("");
 
     if (!phone.trim() && !socialLinks.trim()) {
-      setError("Укажите телефон или ссылку на соцсети");
+      setError("Укажите телефон или ссылку на мессенджер");
+      return;
+    }
+
+    if (!consentChecked) {
+      setError("Подтвердите согласие на обработку персональных данных");
       return;
     }
 
     try {
-      await acceptPersonalDataConsent();
+      if (!consentAcceptedAt) {
+        const consent = await acceptPersonalDataConsent();
+        setConsentAcceptedAt(consent.accepted_at ?? new Date().toISOString());
+      }
       const saved = await upsertMyProfile({
         category_id: Number(categoryId),
         full_name: fullName.trim(),
@@ -95,6 +128,9 @@ export default function ProfilePage() {
         works,
       });
       setProfile(saved);
+      setAvatar(null);
+      setWorks([]);
+      setEditMode(false);
       setSuccess("Профиль сохранён и отправлен на модерацию");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Ошибка сохранения профиля");
@@ -125,11 +161,11 @@ export default function ProfilePage() {
   return (
     <section className="card authCard">
       <h1 className="h1">Профиль мастера</h1>
-      <p className="muted">Аккаунт: {me.login} · роль: {me.role}</p>
+      <p className="muted">Аккаунт: {me.login} · роль: {roleMap[me.role]}</p>
       <div className="profileStatus">
         {profile ? (
           <>
-            <strong>Статус: {profile.status}</strong>
+            <strong>Статус: {statusMap[profile.status]}</strong>
             {profile.status === "rejected" ? (
               <p className="adminError">
                 Отклонено. {profile.rejection_reason ?? "Причина не указана"}. Исправьте карточку и отправьте заново.
@@ -141,42 +177,83 @@ export default function ProfilePage() {
         )}
       </div>
 
-      <form className="authForm" onSubmit={onSubmit}>
-        <label className="label" htmlFor="category">Категория</label>
-        <select id="category" className="select" value={categoryId} onChange={(e) => setCategoryId(e.target.value)} required>
-          <option value="">Выберите категорию</option>
-          {categories.map((c) => (
-            <option key={c.ID} value={c.ID}>{c.Name ?? "Без названия"}</option>
-          ))}
-        </select>
+      {!editMode ? (
+        <div className="authForm">
+          <article className="card masterHeroCard">
+            <div className="masterTop">
+              <img src={profile?.avatar_url || "/logo-placeholder.svg"} alt={profile?.full_name || me.login} className="masterAvatar" />
+              <div className="masterHeadInfo">
+                <h2>{profile?.full_name || me.login}</h2>
+                <div className="badgeRow">
+                  <span className="badge badgeBlue">{categoryName}</span>
+                </div>
+                <p className="meta">📍 г. {profile?.city || "Не указан"}</p>
+              </div>
+            </div>
+            <div className="divider" />
+            <p>{profile?.description || "Описание пока не добавлено"}</p>
+            <p><strong>Услуги:</strong> {profile?.services || "не указаны"}</p>
+            <p><strong>Телефон:</strong> {profile?.phone || "не указан"}</p>
+            <p><strong>Мессенджер/соцсеть:</strong> {profile?.social_links || "не указан"}</p>
+          </article>
 
-        <label className="label" htmlFor="full-name">ФИО</label>
-        <input id="full-name" className="input" value={fullName} onChange={(e) => setFullName(e.target.value)} required />
+          <button type="button" className="btn btnPrimary" onClick={() => setEditMode(true)}>
+            Редактировать профиль
+          </button>
+        </div>
+      ) : (
+        <form className="authForm" onSubmit={onSubmit}>
+          <label className="label" htmlFor="category">Ваше направление</label>
+          <select id="category" className="select" value={categoryId} onChange={(e) => setCategoryId(e.target.value)} required>
+            <option value="">Выберите направление</option>
+            {categories.map((c) => (
+              <option key={c.ID} value={c.ID}>{c.Name ?? "Без названия"}</option>
+            ))}
+          </select>
 
-        <label className="label" htmlFor="city">Город</label>
-        <input id="city" className="input" value={city} onChange={(e) => setCity(e.target.value)} required />
+          <label className="label" htmlFor="full-name">Как к вам обращаться</label>
+          <input id="full-name" className="input" value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="Например: Анна Петрова" required />
 
-        <label className="label" htmlFor="description">Описание</label>
-        <textarea id="description" className="textarea" value={description} onChange={(e) => setDescription(e.target.value)} required />
+          <label className="label" htmlFor="city">Город работы</label>
+          <input id="city" className="input" value={city} onChange={(e) => setCity(e.target.value)} placeholder="Например: Краснодар" required />
 
-        <label className="label" htmlFor="services">Услуги</label>
-        <textarea id="services" className="textarea" value={services} onChange={(e) => setServices(e.target.value)} required />
+          <label className="label" htmlFor="description">О себе</label>
+          <textarea id="description" className="textarea" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Коротко расскажите о вашем опыте и преимуществах" required />
 
-        <label className="label" htmlFor="phone">Телефон</label>
-        <input id="phone" className="input" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="Можно оставить пустым, если заполните соцсети" />
+          <label className="label" htmlFor="services">Какие услуги оказываете</label>
+          <textarea id="services" className="textarea" value={services} onChange={(e) => setServices(e.target.value)} placeholder="Например: окрашивание, стрижка, укладка" required />
 
-        <label className="label" htmlFor="social">Соцсети</label>
-        <input id="social" className="input" value={socialLinks} onChange={(e) => setSocialLinks(e.target.value)} placeholder="Можно оставить пустым, если заполнен телефон" />
+          <label className="label" htmlFor="phone">Телефон для записи</label>
+          <input id="phone" className="input" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="Можно не заполнять, если есть ссылка ниже" />
 
+          <label className="label" htmlFor="social">Ссылка на мессенджер или соцсеть</label>
+          <input id="social" className="input" value={socialLinks} onChange={(e) => setSocialLinks(e.target.value)} placeholder="Можно не заполнять, если указан телефон" />
 
-        <label className="label" htmlFor="avatar">Фото мастера (аватар)</label>
-        <input id="avatar" type="file" className="input" accept="image/*" onChange={(e) => setAvatar(e.target.files?.[0] ?? null)} />
+          <label className="label" htmlFor="avatar">Ваше фото (аватар)</label>
+          <input id="avatar" type="file" className="input" accept="image/*" onChange={(e) => setAvatar(e.target.files?.[0] ?? null)} />
 
-        <label className="label" htmlFor="works">Примеры работ</label>
-        <input id="works" type="file" className="input" accept="image/*" multiple onChange={(e) => setWorks(Array.from(e.target.files ?? []))} />
+          <label className="label" htmlFor="works">Примеры работ</label>
+          <input id="works" type="file" className="input" accept="image/*" multiple onChange={(e) => setWorks(Array.from(e.target.files ?? []))} />
 
-        <button type="submit" className="btn btnPrimary">Сохранить и отправить на модерацию</button>
-      </form>
+          <label className="label" htmlFor="consent" style={{ display: "flex", alignItems: "flex-start", gap: 8, fontWeight: 500 }}>
+            <input
+              id="consent"
+              type="checkbox"
+              checked={consentChecked}
+              disabled={Boolean(consentAcceptedAt)}
+              onChange={(e) => setConsentChecked(e.target.checked)}
+              style={{ marginTop: 4 }}
+            />
+            <span>
+              Я даю согласие на обработку персональных данных.
+              {consentAcceptedAt ? ` Согласие уже сохранено (${new Date(consentAcceptedAt).toLocaleDateString()}).` : ""}
+            </span>
+          </label>
+
+          <button type="submit" className="btn btnPrimary">Сохранить и отправить на проверку</button>
+          {profile ? <button type="button" className="btn btnGhost" onClick={() => setEditMode(false)}>Отменить редактирование</button> : null}
+        </form>
+      )}
 
       {success ? <p className="adminOk authHint">{success}</p> : null}
       {error ? <p className="adminError authHint">{error}</p> : null}

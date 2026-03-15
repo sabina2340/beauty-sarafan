@@ -107,3 +107,15 @@ func PostPersonalDataConsent(c *gin.Context) {
 
 	c.JSON(http.StatusCreated, gin.H{"message": "consent accepted", "accepted_at": consent.AcceptedAt})
 }
+
+func GetPersonalDataConsent(c *gin.Context) {
+	userID := c.GetUint("user_id")
+
+	var consent models.PersonalDataConsent
+	if err := database.DB.Where("user_id = ?", userID).First(&consent).Error; err == nil {
+		c.JSON(http.StatusOK, gin.H{"accepted": true, "accepted_at": consent.AcceptedAt})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"accepted": false})
+}
