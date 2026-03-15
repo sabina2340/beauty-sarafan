@@ -35,7 +35,7 @@ export default async function HomePage() {
       <div className="homeHero">
         <BrandLogo className="homeLogo" />
       </div>
-      <div className="homeContent card">
+      <div id="categories" className="homeContent card">
         <RoleCategoryPicker groups={groups} />
       </div>
       <HotOffersCarousel />

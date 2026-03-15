@@ -19,7 +19,8 @@ img { max-width: 100%; display: block; }
 .siteHeader { position: fixed; top: 0; left: 0; right: 0; background: var(--yellow); z-index: 50; border-bottom: 1px solid var(--line); }
 .modernHeader { box-shadow: 0 8px 24px rgba(0,0,0,.1); }
 .topBar { height: 66px; display: flex; align-items: center; justify-content: space-between; }
-.iconBtn { border: 0; background: rgba(255,255,255,.55); font-size: 26px; width: 44px; height: 44px; border-radius: 12px; cursor: pointer; }
+.iconBtn { border: 0; background: rgba(255,255,255,.55); font-size: 26px; width: 44px; height: 44px; border-radius: 12px; cursor: pointer; display: grid; place-items: center; }
+.iconBtnGhost { opacity: 0; pointer-events: none; }
 .brand { display: flex; align-items: center; gap: 10px; text-decoration: none; color: #111; font-weight: 800; letter-spacing: 0.04em; font-size: clamp(24px, 4.6vw, 40px); }
 .brandLogo { width: 46px; height: 46px; border-radius: 999px; object-fit: cover; border: 2px solid var(--blue); }
 .mobileMenu { display: grid; gap: 8px; padding: 0 16px 14px; background: var(--yellow); }
@@ -199,16 +200,18 @@ img { max-width: 100%; display: block; }
   left: 0;
   right: 0;
   z-index: 60;
-  display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  display: flex;
   gap: 8px;
   padding: 10px 10px calc(10px + env(safe-area-inset-bottom));
   background: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(8px);
   border-top: 1px solid var(--line);
+  overflow-x: auto;
 }
 
 .bottomNavItem {
+  border: 0;
+  flex: 1 0 74px;
   border-radius: 14px;
   text-decoration: none;
   color: #565656;
