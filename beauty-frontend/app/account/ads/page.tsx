@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { getMyAds, markPaid, type MyAdItem } from "@/lib/ads-api";
 import { authMe, getMyProfile, type MyMasterProfile } from "@/lib/auth-api";
+import { adTypeLabel, moderationStatusLabel, readableApiError } from "@/lib/labels";
 
 export default function MyAdsPage() {
   const [ads, setAds] = useState<MyAdItem[]>([]);
@@ -42,7 +43,7 @@ export default function MyAdsPage() {
         } catch (e) {
           if (!active) return;
           setAdsAccessBlocked(true);
-          setError(e instanceof Error ? e.message : "Ошибка загрузки");
+          setError(readableApiError(e instanceof Error ? e.message : "Ошибка загрузки"));
         }
 
         const currentProfile = await currentProfilePromise;
@@ -85,7 +86,10 @@ export default function MyAdsPage() {
     return (
       <section className="card">
         <h1 className="h1">Мои объявления</h1>
-        <p className="adminError">{error || "Чтобы работать с объявлениями, профиль мастера должен быть одобрен."}</p>
+        <div className="noticeBox noticeDanger">
+          <strong>Раздел объявлений временно недоступен</strong>
+          <p>{error || "Чтобы работать с объявлениями, профиль мастера должен быть одобрен."}</p>
+        </div>
         <p>
           <Link className="btn btnPrimary" href="/profile">
             Перейти в профиль
@@ -113,10 +117,10 @@ export default function MyAdsPage() {
         <article key={ad.id} className="adminItem">
           <strong>{ad.title}</strong>
           <p className="muted">
-            {ad.type} · {ad.status} · {new Date(ad.created_at || Date.now()).toLocaleDateString()}
+            {adTypeLabel(ad.type)} · {moderationStatusLabel(ad.status)} · {new Date(ad.created_at || Date.now()).toLocaleDateString()}
           </p>
           {ad.expires_at ? <p>До: {new Date(ad.expires_at).toLocaleDateString()}</p> : null}
-          {ad.rejection_reason ? <p className="adminError">Причина: {ad.rejection_reason}</p> : null}
+          {ad.rejection_reason ? <div className="noticeBox noticeDanger"><strong>Причина отклонения</strong><p>{ad.rejection_reason}</p></div> : null}
           <div className="adminActions">
             {ad.status === "approved" ? (
               <Link className="btn btnPrimary" href={`/account/ads/${ad.id}/tariff`}>
@@ -140,7 +144,7 @@ export default function MyAdsPage() {
         </article>
       ))}
       {!ads.length ? <p className="muted">Объявлений пока нет.</p> : null}
-      {error ? <p className="adminError">{error}</p> : null}
+      {error ? <div className="noticeBox noticeDanger"><p>{error}</p></div> : null}
     </section>
   );
 }
