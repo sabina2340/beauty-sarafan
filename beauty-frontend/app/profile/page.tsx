@@ -37,6 +37,10 @@ export default function ProfilePage() {
         setMe(meData);
         setCategories(Array.isArray(categoryItems) ? categoryItems : []);
 
+        if (!meData) {
+          return;
+        }
+
         const p = await getMyProfile();
         if (!active) return;
 

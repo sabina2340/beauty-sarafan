@@ -30,11 +30,16 @@ async function parseJson<T>(response: Response): Promise<T> {
   return (await response.json()) as T;
 }
 
-export async function authMe(): Promise<AuthMe> {
+export async function authMe(options?: { silent?: boolean }): Promise<AuthMe | null> {
   const response = await fetch(`${API_URL}/auth/me`, {
     credentials: "include",
     cache: "no-store",
   });
+
+  if (response.status === 401 && options?.silent !== false) {
+    return null;
+  }
+
   return parseJson<AuthMe>(response);
 }
 
@@ -47,7 +52,6 @@ export async function login(payload: { login: string; password: string }) {
   });
   return parseJson<{ message: string; role: string; status: string }>(response);
 }
-
 
 export async function logout() {
   const response = await fetch(`${API_URL}/auth/logout`, {
