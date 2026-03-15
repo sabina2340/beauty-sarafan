@@ -54,6 +54,10 @@ export default function AdminPage() {
   const [equipmentDescription, setEquipmentDescription] = useState("");
   const [equipmentContact, setEquipmentContact] = useState("");
   const [equipmentImage, setEquipmentImage] = useState<File | null>(null);
+  const [rejectModalOpen, setRejectModalOpen] = useState(false);
+  const [rejectReason, setRejectReason] = useState("");
+  const [rejectError, setRejectError] = useState("");
+  const [rejectTarget, setRejectTarget] = useState<{ kind: "ad" | "user"; id: number } | null>(null);
 
   const statusOptions = useMemo(() => ["pending", "approved", "rejected"] as const, []);
 
@@ -124,7 +128,43 @@ export default function AdminPage() {
     }
   };
 
-  const quickRejectReason = (label: string) => window.prompt(`Причина отклонения (${label})`, "") || "";
+  const openRejectModal = (kind: "ad" | "user", id: number) => {
+    setRejectTarget({ kind, id });
+    setRejectReason("");
+    setRejectError("");
+    setRejectModalOpen(true);
+  };
+
+  const closeRejectModal = () => {
+    setRejectModalOpen(false);
+    setRejectReason("");
+    setRejectError("");
+    setRejectTarget(null);
+  };
+
+  const submitReject = async () => {
+    if (!rejectTarget) return;
+    const reason = rejectReason.trim();
+    if (reason.length < 3) {
+      setRejectError("Укажите причину не короче 3 символов");
+      return;
+    }
+
+    try {
+      if (rejectTarget.kind === "user") {
+        await rejectUser(rejectTarget.id, reason);
+        await loadMasters();
+        setOk("Пользователь отклонён");
+      } else {
+        await rejectAd(rejectTarget.id, reason);
+        await loadAds();
+        setOk("Объявление отклонено");
+      }
+      closeRejectModal();
+    } catch (e) {
+      setFail(e);
+    }
+  };
 
 
   const loadEquipment = async () => {
@@ -271,7 +311,7 @@ export default function AdminPage() {
               </div>
               <div className="adminActions">
                 <button className="btn btnPrimary" onClick={async () => { try { await approveUser(master.user_id); await loadMasters(); setOk("Пользователь одобрен"); } catch (e) { setFail(e); } }}>Одобрить</button>
-                <button className="btn btnGhost" onClick={async () => { try { await rejectUser(master.user_id, quickRejectReason("пользователь")); await loadMasters(); setOk("Пользователь отклонён"); } catch (e) { setFail(e); } }}>Отклонить</button>
+                <button className="btn btnGhost" onClick={() => openRejectModal("user", master.user_id)}>Отклонить</button>
               </div>
             </div>
           ))}
@@ -303,7 +343,7 @@ export default function AdminPage() {
               <div className="adminActions">
                 <button className="btn btnSecondary" onClick={() => startEditAd(ad)}>Редактировать</button>
                 <button className="btn btnPrimary" onClick={async () => { try { await approveAd(ad.id); await loadAds(); setOk("Объявление одобрено"); } catch (e) { setFail(e); } }}>Одобрить</button>
-                <button className="btn btnGhost" onClick={async () => { try { await rejectAd(ad.id, quickRejectReason("объявление")); await loadAds(); setOk("Объявление отклонено"); } catch (e) { setFail(e); } }}>Отклонить</button>
+                <button className="btn btnGhost" onClick={() => openRejectModal("ad", ad.id)}>Отклонить</button>
               </div>
             </div>
           ))}
@@ -396,6 +436,28 @@ export default function AdminPage() {
           {payments.length === 0 ? <p className="muted">Список пуст.</p> : null}
         </div>
       </article>
+
+      {rejectModalOpen ? (
+        <div className="modalOverlay" role="dialog" aria-modal="true" aria-label="Отклонить объявление">
+          <div className="modalCard">
+            <button type="button" className="modalClose" onClick={closeRejectModal} aria-label="Закрыть">✕</button>
+            <h3>Отклонить объявление</h3>
+            <p className="muted">Укажите причину отклонения</p>
+            <textarea
+              className="textarea"
+              value={rejectReason}
+              onChange={(e) => setRejectReason(e.target.value)}
+              placeholder="Причина отклонения"
+              rows={5}
+            />
+            {rejectError ? <p className="adminError">{rejectError}</p> : null}
+            <div className="actionRow">
+              <button type="button" className="btn btnGhost" onClick={closeRejectModal}>Отмена</button>
+              <button type="button" className="btn btnPrimary" onClick={submitReject}>Отклонить</button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </section>
   );
 }

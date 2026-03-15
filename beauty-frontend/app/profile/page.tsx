@@ -265,6 +265,7 @@ export default function ProfilePage() {
         <p><Link className="btn btnGhost" href="/admin">Перейти в админ-панель</Link></p>
       ) : null}
       <p><Link className="btn btnSecondary" href="/account/ads">Перейти в мои объявления</Link></p>
+      <p><Link className="btn btnGhost" href="/account/password">Сменить пароль</Link></p>
     </section>
   );
 }

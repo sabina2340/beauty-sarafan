@@ -14,11 +14,18 @@ async function parseResponse<T>(response: Response): Promise<T> {
 }
 
 export type Tariff = {
-  ID: number;
-  Name: string;
-  Price: number;
-  DurationDays: number;
-  IsActive: boolean;
+  ID?: number;
+  Name?: string;
+  Price?: number;
+  DurationDays?: number;
+  IsActive?: boolean;
+  id?: number;
+  name?: string;
+  description?: string;
+  price?: number;
+  duration_days?: number;
+  is_active?: boolean;
+  sort_order?: number;
 };
 
 export type ActiveAdCard = {

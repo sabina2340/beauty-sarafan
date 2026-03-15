@@ -141,7 +141,7 @@ func CreateWithImages(c *gin.Context) {
 // TariffsList GET /tariffs
 func TariffsList(c *gin.Context) {
 	var tariffs []models.Tariff
-	if err := database.DB.Where("is_active = ?", true).Order("price asc").Find(&tariffs).Error; err != nil {
+	if err := database.DB.Where("is_active = ?", true).Order("sort_order asc, price asc").Find(&tariffs).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to load tariffs"})
 		return
 	}
