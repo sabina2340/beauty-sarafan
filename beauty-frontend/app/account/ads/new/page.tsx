@@ -58,9 +58,9 @@ export default function NewAdPage() {
       <h1 className="h1">Новое объявление</h1>
       <form className="authForm" onSubmit={onSubmit}>
         <select className="select" value={type} onChange={(e) => setType(e.target.value)} required>
-          <option value="service">service</option>
-          <option value="cabinet">cabinet</option>
-          <option value="salon">salon</option>
+          <option value="service">Частный мастер</option>
+          <option value="cabinet">Кабинет</option>
+          <option value="salon">Салон</option>
         </select>
         <input className="input" placeholder="Заголовок" value={title} onChange={(e) => setTitle(e.target.value)} required />
         <textarea className="textarea" placeholder="Описание" value={description} onChange={(e) => setDescription(e.target.value)} required />

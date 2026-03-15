@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { getMyAds, markPaid, type MyAdItem } from "@/lib/ads-api";
+import { getMyAds, getTariffs, markPaid, type MyAdItem, type Tariff } from "@/lib/ads-api";
 import { authMe, getMyProfile, type MyMasterProfile } from "@/lib/auth-api";
 import { adTypeLabel, moderationStatusLabel, readableApiError } from "@/lib/labels";
 
@@ -13,6 +13,7 @@ export default function MyAdsPage() {
   const [authorized, setAuthorized] = useState(false);
   const [profile, setProfile] = useState<MyMasterProfile | null>(null);
   const [adsAccessBlocked, setAdsAccessBlocked] = useState(false);
+  const [tariffs, setTariffs] = useState<Tariff[]>([]);
 
   const loadAds = async () => {
     const items = await getMyAds();
@@ -35,6 +36,7 @@ export default function MyAdsPage() {
         setAuthorized(true);
 
         const currentProfilePromise = getMyProfile().catch(() => null);
+        const tariffsPromise = getTariffs().catch(() => []);
 
         try {
           await loadAds();
@@ -47,8 +49,10 @@ export default function MyAdsPage() {
         }
 
         const currentProfile = await currentProfilePromise;
+        const tariffsData = await tariffsPromise;
         if (!active) return;
         setProfile(currentProfile);
+        setTariffs(Array.isArray(tariffsData) ? tariffsData : []);
       } finally {
         if (active) setLoading(false);
       }
@@ -115,10 +119,18 @@ export default function MyAdsPage() {
       </p>
       {ads.map((ad) => (
         <article key={ad.id} className="adminItem">
+          {(() => {
+            const selectedTariff = tariffs.find((t) => String(t.id ?? t.ID ?? "") === String(ad.tariff_id ?? ""));
+            const tariffPrice = selectedTariff ? (selectedTariff.price ?? selectedTariff.Price) : null;
+            const tariffName = selectedTariff ? (selectedTariff.name ?? selectedTariff.Name) : null;
+            return (
+              <>
           <strong>{ad.title}</strong>
           <p className="muted">
             {adTypeLabel(ad.type)} · {moderationStatusLabel(ad.status)} · {new Date(ad.created_at || Date.now()).toLocaleDateString()}
           </p>
+          {tariffName ? <p className="muted">Тариф: {tariffName}</p> : null}
+          {tariffPrice ? <p><strong>Стоимость:</strong> {tariffPrice} ₽</p> : <p className="muted">Стоимость: не выбрана</p>}
           {ad.expires_at ? <p>До: {new Date(ad.expires_at).toLocaleDateString()}</p> : null}
           {ad.rejection_reason ? <div className="noticeBox noticeDanger"><strong>Причина отклонения</strong><p>{ad.rejection_reason}</p></div> : null}
           <div className="adminActions">
@@ -141,6 +153,9 @@ export default function MyAdsPage() {
               </button>
             ) : null}
           </div>
+              </>
+            );
+          })()}
         </article>
       ))}
       {!ads.length ? <p className="muted">Объявлений пока нет.</p> : null}

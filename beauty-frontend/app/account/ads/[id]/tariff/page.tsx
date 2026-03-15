@@ -16,16 +16,23 @@ export default function TariffPage({ params }: { params: { id: string } }) {
   return (
     <section className="card">
       <h1 className="h1">Выбор тарифа</h1>
-      {tariffs.map((t) => (
-        <article key={t.ID} className="adminItem">
-          <strong>{t.Name}</strong>
-          <p>{t.Price} ₽ · {t.DurationDays} дней</p>
+      {tariffs.map((t, i) => {
+        const id = t.id ?? t.ID;
+        const name = t.name ?? t.Name;
+        const description = t.description;
+        const price = t.price ?? t.Price;
+        const days = t.duration_days ?? t.DurationDays;
+        return (
+        <article key={id ?? i} className="adminItem">
+          <strong>{name}</strong>
+          {description ? <p className="muted">{description}</p> : null}
+          <p>{price} ₽ · {days} дней</p>
           <button className="btn btnPrimary" onClick={async () => {
-            const res = await selectTariff(Number(params.id), t.ID);
+            const res = await selectTariff(Number(params.id), Number(id));
             router.push(`/account/ads/${params.id}/payment?payment_id=${res.payment_id}`);
           }}>Выбрать</button>
         </article>
-      ))}
+      )})}
       {error ? <p className="adminError">{error}</p> : null}
     </section>
   );

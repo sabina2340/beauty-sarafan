@@ -28,6 +28,8 @@ img { max-width: 100%; display: block; }
 .mobileMenu a { text-decoration: none; color: #111; background: rgba(255,255,255,.66); border-radius: 12px; padding: 10px 12px; font-weight: 700; }
 
 .siteFooter { padding: 20px 0 90px; color: var(--muted); text-align: center; }
+.footerLinks { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin-top: 8px; }
+.footerLinks a { color: #333; text-decoration: none; font-size: 14px; }
 
 .card { background: #fff; border: 1px solid var(--line); border-radius: 22px; padding: 16px; box-shadow: 0 8px 20px rgba(0,0,0,.06); }
 .h1 { margin: 0 0 10px; text-align: center; font-size: clamp(30px, 9vw, 46px); font-weight: 900; line-height: .98; }
@@ -89,6 +91,42 @@ img { max-width: 100%; display: block; }
 .fileHint { margin: -4px 0 2px; color: var(--muted); font-size: 14px; }
 .consentRow { display: flex; align-items: flex-start; gap: 8px; font-weight: 500; }
 .consentRow input { margin-top: 4px; }
+.legalPage h3 { margin-bottom: 6px; }
+
+.modalOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 120;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 14px;
+}
+
+.modalCard {
+  width: min(520px, 100%);
+  background: #fff;
+  border-radius: 16px;
+  border: 1px solid var(--line);
+  padding: 14px;
+  position: relative;
+  display: grid;
+  gap: 10px;
+}
+
+.modalClose {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  border: 0;
+  background: #f4f4f4;
+  width: 34px;
+  height: 34px;
+  border-radius: 999px;
+  font-size: 18px;
+  cursor: pointer;
+}
 
 
 .adminPage { display: grid; gap: 12px; }

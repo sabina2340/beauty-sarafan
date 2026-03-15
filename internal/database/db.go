@@ -61,10 +61,14 @@ func InitDB() *gorm.DB {
 
 func seedTariffs(db *gorm.DB) {
 	items := []models.Tariff{
-		{Name: "7 дней", Price: 1000, DurationDays: 7, IsActive: true},
-		{Name: "14 дней", Price: 1800, DurationDays: 14, IsActive: true},
-		{Name: "30 дней", Price: 3200, DurationDays: 30, IsActive: true},
+		{Name: "Акции и спецпредложения · 7 дней", Description: "Размещение во вкладке «Акции и спецпредложения»", Price: 500, DurationDays: 7, IsActive: true, SortOrder: 10},
+		{Name: "Акции и спецпредложения · 14 дней", Description: "Размещение во вкладке «Акции и спецпредложения»", Price: 900, DurationDays: 14, IsActive: true, SortOrder: 20},
+		{Name: "Акции и спецпредложения · 30 дней", Description: "Размещение во вкладке «Акции и спецпредложения»", Price: 1700, DurationDays: 30, IsActive: true, SortOrder: 30},
+		{Name: "Всплывающие окна и баннеры · 7 дней", Description: "Размещение во всплывающих окнах и баннерах", Price: 600, DurationDays: 7, IsActive: true, SortOrder: 40},
+		{Name: "Всплывающие окна и баннеры · 14 дней", Description: "Размещение во всплывающих окнах и баннерах", Price: 1000, DurationDays: 14, IsActive: true, SortOrder: 50},
+		{Name: "Всплывающие окна и баннеры · 30 дней", Description: "Размещение во всплывающих окнах и баннерах", Price: 1900, DurationDays: 30, IsActive: true, SortOrder: 60},
 	}
+	_ = db.Model(&models.Tariff{}).Update("is_active", false).Error
 	for _, item := range items {
 		tariff := item
 		if err := db.Where("name = ?", item.Name).Assign(item).FirstOrCreate(&tariff).Error; err != nil {
