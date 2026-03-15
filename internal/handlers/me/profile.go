@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 )
 
 type ProfileUpsertRequest struct {
@@ -72,7 +73,11 @@ func GetProfile(c *gin.Context) {
 
 	var profile models.MasterProfile
 	if err := database.DB.Where("user_id = ?", userID).First(&profile).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "profile not found"})
+		if err == gorm.ErrRecordNotFound {
+			c.JSON(http.StatusOK, nil)
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to load profile"})
 		return
 	}
 
