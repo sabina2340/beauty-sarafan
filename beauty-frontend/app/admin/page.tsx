@@ -422,9 +422,11 @@ export default function AdminPage() {
                   value={reviewCommentById[review.id] || ""}
                   onChange={(e) => setReviewCommentById((prev) => ({ ...prev, [review.id]: e.target.value }))}
                 />
-                <button className="btn btnPrimary" onClick={async () => { try { await moderateReview(review.id, { status: "approved", admin_comment: reviewCommentById[review.id] || "" }); await loadReviews(); setOk("Отзыв одобрен"); } catch (e) { setFail(e); } }}>Одобрить</button>
-                <button className="btn btnGhost" onClick={async () => { try { await moderateReview(review.id, { status: "rejected", admin_comment: reviewCommentById[review.id] || "" }); await loadReviews(); setOk("Отзыв отклонен"); } catch (e) { setFail(e); } }}>Отклонить</button>
-                <button className="btn btnGhost" onClick={async () => { try { await deleteReview(review.id); await loadReviews(); setOk("Отзыв удален"); } catch (e) { setFail(e); } }}>Удалить</button>
+                <div className="reviewActionRow">
+                  <button className="btn btnPrimary" onClick={async () => { try { await moderateReview(review.id, { status: "approved", admin_comment: reviewCommentById[review.id] || "" }); await loadReviews(); setOk("Отзыв одобрен"); } catch (e) { setFail(e); } }}>Одобрить</button>
+                  <button className="btn btnGhost" onClick={async () => { try { await moderateReview(review.id, { status: "rejected", admin_comment: reviewCommentById[review.id] || "" }); await loadReviews(); setOk("Отзыв отклонен"); } catch (e) { setFail(e); } }}>Отклонить</button>
+                  <button className="btn btnGhost" onClick={async () => { try { await deleteReview(review.id); await loadReviews(); setOk("Отзыв удален"); } catch (e) { setFail(e); } }}>Удалить</button>
+                </div>
               </div>
             </div>
           ))}
