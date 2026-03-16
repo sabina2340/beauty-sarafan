@@ -46,6 +46,7 @@ func InitDB() *gorm.DB {
 		&models.Payment{},
 		&models.EquipmentItem{},
 		&models.ModerationLog{},
+		&models.Review{},
 	)
 	if err != nil {
 		log.Fatal("AutoMigrate error:", err)

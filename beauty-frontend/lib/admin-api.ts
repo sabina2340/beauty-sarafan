@@ -26,6 +26,22 @@ export type AdminEquipmentItem = {
   image_url?: string;
 };
 
+
+export type AdminReview = {
+  id: number;
+  master_id: number;
+  text: string;
+  photo_url?: string;
+  phone: string;
+  created_at: string;
+  status: "pending" | "approved" | "rejected";
+  is_personal_data_consent: boolean;
+  personal_data_consent_at?: string;
+  personal_data_consent_type?: string;
+  admin_comment?: string;
+  published_at?: string;
+};
+
 export type AdminAd = {
   id: number;
   user_id: number;
@@ -216,6 +232,36 @@ export async function createEquipment(payload: {
 
 export async function deleteEquipment(id: number) {
   const response = await fetch(`${API_URL}/admin/equipment/${id}`, {
+    method: "DELETE",
+    credentials: "include",
+  });
+  return parseResponse<void>(response);
+}
+
+
+export async function getAdminReviews(params?: { status?: "pending" | "approved" | "rejected"; master_id?: number }) {
+  const q = new URLSearchParams();
+  if (params?.status) q.set("status", params.status);
+  if (params?.master_id) q.set("master_id", String(params.master_id));
+  const response = await fetch(`${API_URL}/admin/reviews${q.toString() ? `?${q.toString()}` : ""}`, {
+    credentials: "include",
+    cache: "no-store",
+  });
+  return parseResponse<AdminReview[]>(response);
+}
+
+export async function moderateReview(id: number, payload: { status: "pending" | "approved" | "rejected"; admin_comment?: string }) {
+  const response = await fetch(`${API_URL}/admin/reviews/${id}/moderate`, {
+    method: "PATCH",
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  return parseResponse<{ message: string }>(response);
+}
+
+export async function deleteReview(id: number) {
+  const response = await fetch(`${API_URL}/admin/reviews/${id}`, {
     method: "DELETE",
     credentials: "include",
   });

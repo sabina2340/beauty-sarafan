@@ -1,4 +1,4 @@
-import { Advertisement, MasterCard, MasterDetail } from "@/lib/types";
+import { Advertisement, MasterCard, MasterDetail, ReviewItem } from "@/lib/types";
 
 // В DEV ходим через Next proxy, чтобы не было CORS в браузере
 const API_URL = "/api";
@@ -34,4 +34,31 @@ export async function getMasterById(id: string): Promise<MasterDetail> {
 export async function getMasterAds(id: string): Promise<Advertisement[]> {
   const response = await fetch(`${API_URL}/masters/${id}/ads`, { cache: "no-store" });
   return parseResponse<Advertisement[]>(response);
+}
+
+
+export async function getMasterReviews(id: string): Promise<ReviewItem[]> {
+  const response = await fetch(`${API_URL}/masters/${id}/reviews`, { cache: "no-store" });
+  return parseResponse<ReviewItem[]>(response);
+}
+
+export async function createMasterReview(id: string, payload: {
+  phone: string;
+  text: string;
+  photo: File;
+  is_personal_data_consent: boolean;
+  personal_data_consent_type?: string;
+}) {
+  const formData = new FormData();
+  formData.append("phone", payload.phone);
+  formData.append("text", payload.text);
+  formData.append("photo", payload.photo);
+  formData.append("is_personal_data_consent", String(payload.is_personal_data_consent));
+  formData.append("personal_data_consent_type", payload.personal_data_consent_type || "privacy_policy_v1");
+
+  const response = await fetch(`${API_URL}/masters/${id}/reviews`, {
+    method: "POST",
+    body: formData,
+  });
+  return parseResponse<{ id: number; status: string; message: string }>(response);
 }

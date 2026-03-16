@@ -55,6 +55,8 @@ func RegisterRoutes(r *gin.Engine, db *gorm.DB) {
 	r.GET("/masters", publicHandlers.ListMasters)
 	r.GET("/masters/:id", publicHandlers.GetMaster)
 	r.GET("/masters/:id/ads", ads.PublicByMaster)
+	r.GET("/masters/:id/reviews", publicHandlers.ListApprovedReviews)
+	r.POST("/masters/:id/reviews", publicHandlers.CreateReview)
 
 	r.GET("/equipment", equipment.List)
 	r.GET("/equipment/:id", equipment.Get)
@@ -112,6 +114,11 @@ func RegisterRoutes(r *gin.Engine, db *gorm.DB) {
 		adminGroup.POST("/equipment", admin.CreateEquipment)
 		adminGroup.PUT("/equipment/:id", admin.UpdateEquipment)
 		adminGroup.DELETE("/equipment/:id", admin.DeleteEquipment)
+
+		adminGroup.GET("/reviews", admin.ListReviews)
+		adminGroup.GET("/reviews/:id", admin.GetReview)
+		adminGroup.PATCH("/reviews/:id/moderate", admin.ModerateReview)
+		adminGroup.DELETE("/reviews/:id", admin.DeleteReview)
 	}
 
 	r.GET("/", func(c *gin.Context) {

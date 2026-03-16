@@ -20,6 +20,10 @@ import {
   type AdminAd,
   type AdminEquipmentItem,
   type AdminMaster,
+  getAdminReviews,
+  moderateReview,
+  deleteReview,
+  type AdminReview,
 } from "@/lib/admin-api";
 
 type ModerationStatus = "pending" | "approved" | "rejected";
@@ -54,6 +58,9 @@ export default function AdminPage() {
   const [equipmentDescription, setEquipmentDescription] = useState("");
   const [equipmentContact, setEquipmentContact] = useState("");
   const [equipmentImage, setEquipmentImage] = useState<File | null>(null);
+  const [reviewStatus, setReviewStatus] = useState<ModerationStatus>("pending");
+  const [reviews, setReviews] = useState<AdminReview[]>([]);
+  const [reviewCommentById, setReviewCommentById] = useState<Record<number, string>>({});
   const [rejectModalOpen, setRejectModalOpen] = useState(false);
   const [rejectReason, setRejectReason] = useState("");
   const [rejectError, setRejectError] = useState("");
@@ -161,6 +168,18 @@ export default function AdminPage() {
         setOk("Объявление отклонено");
       }
       closeRejectModal();
+    } catch (e) {
+      setFail(e);
+    }
+  };
+
+
+  const loadReviews = async () => {
+    try {
+      const res = await getAdminReviews({ status: reviewStatus });
+      const safeList = Array.isArray(res) ? res : [];
+      setReviews(safeList);
+      setOk(`Загружено отзывов: ${safeList.length}`);
     } catch (e) {
       setFail(e);
     }
@@ -370,6 +389,47 @@ export default function AdminPage() {
             </div>
           </div>
         ) : null}
+      </article>
+
+
+      <article className="card adminCard adminSection">
+        <div className="adminSectionHeader">
+          <h2 className="h3">Отзывы</h2>
+          <div className="adminControls">
+            <select className="select" value={reviewStatus} onChange={(e) => setReviewStatus(e.target.value as ModerationStatus)}>
+              {statusOptions.map((status) => (
+                <option key={status} value={status}>{status}</option>
+              ))}
+            </select>
+            <button className="btn btnSecondary" onClick={loadReviews}>Загрузить</button>
+          </div>
+        </div>
+
+        <div className="adminList">
+          {reviews.map((review) => (
+            <div key={review.id} className="adminItem">
+              <div>
+                <strong>Отзыв #{review.id}</strong> · master #{review.master_id}
+                <p className="muted">Статус: {review.status} · Телефон: {review.phone}</p>
+                <p>{review.text}</p>
+                {review.photo_url ? <a href={review.photo_url} target="_blank" rel="noreferrer"><img src={review.photo_url} alt={`review-${review.id}`} style={{ width: 90, height: 70, objectFit: "cover", borderRadius: 8 }} /></a> : null}
+                <p className="muted">Согласие ПД: {review.is_personal_data_consent ? "да" : "нет"} · {review.personal_data_consent_at ? new Date(review.personal_data_consent_at).toLocaleString("ru-RU") : "—"}</p>
+              </div>
+              <div className="adminActions">
+                <input
+                  className="input"
+                  placeholder="Комментарий модератора"
+                  value={reviewCommentById[review.id] || ""}
+                  onChange={(e) => setReviewCommentById((prev) => ({ ...prev, [review.id]: e.target.value }))}
+                />
+                <button className="btn btnPrimary" onClick={async () => { try { await moderateReview(review.id, { status: "approved", admin_comment: reviewCommentById[review.id] || "" }); await loadReviews(); setOk("Отзыв одобрен"); } catch (e) { setFail(e); } }}>Одобрить</button>
+                <button className="btn btnGhost" onClick={async () => { try { await moderateReview(review.id, { status: "rejected", admin_comment: reviewCommentById[review.id] || "" }); await loadReviews(); setOk("Отзыв отклонен"); } catch (e) { setFail(e); } }}>Отклонить</button>
+                <button className="btn btnGhost" onClick={async () => { try { await deleteReview(review.id); await loadReviews(); setOk("Отзыв удален"); } catch (e) { setFail(e); } }}>Удалить</button>
+              </div>
+            </div>
+          ))}
+          {reviews.length === 0 ? <p className="muted">Список пуст. Выберите статус и нажмите «Загрузить».</p> : null}
+        </div>
       </article>
 
 

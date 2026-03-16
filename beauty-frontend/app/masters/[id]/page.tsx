@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { getMasterAds, getMasterById } from "@/lib/api";
+import { getMasterAds, getMasterById, getMasterReviews } from "@/lib/api";
+import { MasterReviewsSection } from "@/components/MasterReviewsSection";
 
 type Props = {
   params: { id: string };
@@ -27,7 +28,9 @@ export default async function MasterDetailPage({ params, searchParams }: Props) 
   try {
     const master = await getMasterById(params.id);
     const adsResponse = await getMasterAds(params.id).catch(() => []);
+    const reviewsResponse = await getMasterReviews(params.id).catch(() => []);
     const ads = Array.isArray(adsResponse) ? adsResponse : [];
+    const reviews = Array.isArray(reviewsResponse) ? reviewsResponse : [];
     const services = splitServices(master.services);
 
     return (
@@ -79,6 +82,8 @@ export default async function MasterDetailPage({ params, searchParams }: Props) 
           ) : <p>Примеры работ пока не загружены</p>}
 
         </article>
+
+        <MasterReviewsSection masterId={params.id} initialReviews={reviews} />
 
         {ads.length > 0 ? (
           <article className="card">

@@ -48,3 +48,13 @@ export type EquipmentItem = {
   image_url?: string;
   price?: number | null;
 };
+
+
+export type ReviewItem = {
+  id: number;
+  text: string;
+  photo_url?: string;
+  published_at?: string;
+  created_at: string;
+  author_name?: string;
+};
