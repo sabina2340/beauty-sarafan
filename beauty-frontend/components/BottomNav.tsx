@@ -16,6 +16,7 @@ export function BottomNav() {
   const pathname = usePathname();
   const router = useRouter();
   const [me, setMe] = useState<AuthMe | null>(null);
+  const [showMore, setShowMore] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -39,8 +40,7 @@ export function BottomNav() {
     return [
       ...base,
       { href: "/profile", label: "Кабинет", icon: "👤" },
-      { href: "/account/ads", label: "Объявления", icon: "📣" },
-      { href: "#", label: "Выйти", icon: "🚪", action: "logout" },
+      { href: "#", label: "Ещё", icon: "⋯" },
     ];
   }, [me]);
 
@@ -56,10 +56,20 @@ export function BottomNav() {
   };
 
   return (
-    <nav className="bottomNav" aria-label="Нижняя навигация">
-      {items.map((item) => {
+    <>
+      <nav className="bottomNav" aria-label="Нижняя навигация">
+        {items.map((item) => {
         const isHomeCategory = item.href.startsWith("/#") && pathname === "/";
         const active = isHomeCategory || pathname === item.href || (item.href !== "/" && !item.href.startsWith("/#") && pathname.startsWith(item.href));
+
+        if (item.label === "Ещё") {
+          return (
+            <button key="more" type="button" className="bottomNavItem" onClick={() => setShowMore(true)}>
+              <span aria-hidden>{item.icon}</span>
+              <span>{item.label}</span>
+            </button>
+          );
+        }
 
         if (item.action === "logout") {
           return (
@@ -76,7 +86,19 @@ export function BottomNav() {
             <span>{item.label}</span>
           </Link>
         );
-      })}
-    </nav>
+        })}
+      </nav>
+
+      {showMore && me ? (
+        <div className="modalOverlay" onClick={() => setShowMore(false)}>
+          <div className="modalCard" role="dialog" aria-modal="true" onClick={(e) => e.stopPropagation()}>
+            <button className="modalClose" onClick={() => setShowMore(false)} aria-label="Закрыть">×</button>
+            <h3 style={{ margin: 0 }}>Быстрые действия</h3>
+            <Link href="/account/ads" className="btn btnGhost" onClick={() => setShowMore(false)}>📣 Объявления</Link>
+            <button type="button" className="btn btnPrimary" onClick={async () => { await onLogout(); setShowMore(false); }}>🚪 Выйти</button>
+          </div>
+        </div>
+      ) : null}
+    </>
   );
 }

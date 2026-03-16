@@ -22,7 +22,8 @@ export const metadata: Metadata = {
 };
 
 async function getCategoryGroups() {
-  const res = await fetch("http://localhost:8080/category-groups", { cache: "no-store" });
+  const res = await fetch("http://localhost:8080/category-groups", { cache: "no-store" }).catch(() => null);
+  if (!res) return [];
   if (!res.ok) return [];
   return (await res.json()) as CategoryGroup[];
 }
