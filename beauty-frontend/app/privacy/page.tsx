@@ -2,7 +2,6 @@ export default function PrivacyPage() {
   return (
     <section className="card authCard legalPage">
       <h1 className="h1">Политика конфиденциальности</h1>
-      <p><a className="btn btnGhost" href="/legal/privacy.pdf" target="_blank" rel="noreferrer">Скачать PDF</a></p>
       <ul>
         <li>Собираем данные аккаунта, контактные данные и данные взаимодействия с сервисом.</li>
         <li>Цели обработки: предоставление услуг, поддержка пользователей, исполнение закона.</li>

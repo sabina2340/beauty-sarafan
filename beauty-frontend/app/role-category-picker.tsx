@@ -34,7 +34,7 @@ export function RoleCategoryPicker({ groups }: Props) {
     <div className="homeBlocks">
       <div className="homeIntro">
         <h1 className="h1">Приветствуем!</h1>
-        <p className="lead">Сарафан - это удобная, современная онлайн - платформа, которая объединяет самые топовые услуги для всей семьи и их клиентов.</p>
+        <p className="lead">Сарафан - это удобная, современная онлайн - платформа, которая объединяет самые топовые услуги для всей семьи и их клиентов по всей России.</p>
       </div>
 
       <div className="roleButtons">

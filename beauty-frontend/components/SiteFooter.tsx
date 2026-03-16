@@ -10,7 +10,7 @@ export function SiteFooter() {
           <Link href="/payment">Оплата</Link>
           <Link href="/refund">Возврат</Link>
           <Link href="/privacy">Конфиденциальность</Link>
-          <Link href="/requisites">Реквизиты</Link>
+          <Link href="/pricing">Тарифы</Link>
         </div>
       </div>
     </footer>

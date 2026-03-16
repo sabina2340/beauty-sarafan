@@ -78,9 +78,6 @@ export default async function MasterDetailPage({ params, searchParams }: Props) 
             </div>
           ) : <p>Примеры работ пока не загружены</p>}
 
-          <div className="ctaRow" style={{ marginTop: 20 }}>
-            <button type="button" className="btn btnPrimary">Записаться</button>
-          </div>
         </article>
 
         {ads.length > 0 ? (
