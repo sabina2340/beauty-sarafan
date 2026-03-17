@@ -4,8 +4,17 @@ export function SiteFooter() {
   return (
     <footer className="siteFooter">
       <div className="container footerWrap">
-        <p>© {new Date().getFullYear()} Сарафан</p>
-        <div className="footerLinks">
+        <p className="footerCopyright">© {new Date().getFullYear()} Сарафан</p>
+
+        <p className="footerCompactLine">
+          <Link href="/offer">Оферта</Link>
+          <span> · </span>
+          <Link href="/privacy">Политика</Link>
+          <span> · </span>
+          <Link href="/privacy">Персональные данные</Link>
+        </p>
+
+        <div className="footerLinks footerLinksDesktop">
           <Link href="/offer">Оферта</Link>
           <Link href="/payment">Оплата</Link>
           <Link href="/refund">Возврат</Link>

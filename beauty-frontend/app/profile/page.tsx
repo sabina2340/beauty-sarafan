@@ -4,6 +4,7 @@ import Link from "next/link";
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { acceptPersonalDataConsent, authMe, getMyProfile, getPersonalDataConsent, upsertMyProfile, type AuthMe, type MyMasterProfile } from "@/lib/auth-api";
 import { readableApiError } from "@/lib/labels";
+import { FileUploadField } from "@/components/FileUploadField";
 
 type Category = { ID?: number; Name?: string; id?: number; name?: string };
 
@@ -18,6 +19,14 @@ function profileStatusLabel(status?: string) {
   if (status === "approved") return "Одобрен";
   if (status === "rejected") return "Отклонён";
   return "Заполняется";
+}
+
+function mergeWorkFiles(previous: File[], incoming: File[]) {
+  const map = new Map(previous.map((file) => [`${file.name}-${file.size}-${file.lastModified}`, file]));
+  for (const file of incoming) {
+    map.set(`${file.name}-${file.size}-${file.lastModified}`, file);
+  }
+  return Array.from(map.values());
 }
 
 export default function ProfilePage() {
@@ -94,6 +103,7 @@ export default function ProfilePage() {
     const found = categories.find((c) => String(c.ID ?? c.id ?? "") === target);
     return found?.Name ?? found?.name ?? "Категория не выбрана";
   }, [categories, profile?.category_id, categoryId]);
+
 
   const onSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -193,6 +203,19 @@ export default function ProfilePage() {
             <p><strong>Услуги:</strong> {profile?.services || "не указаны"}</p>
             <p><strong>Телефон:</strong> {profile?.phone || "не указан"}</p>
             <p><strong>Мессенджер/соцсеть:</strong> {profile?.social_links || "не указан"}</p>
+            {profile?.work_images && profile.work_images.length > 0 ? (
+              <>
+                <div className="divider" />
+                <h3>Примеры работ</h3>
+                <div className="uploadPreviewGrid">
+                  {profile.work_images.map((item, index) => (
+                    <a key={`${item.image_url}-${index}`} href={item.image_url} target="_blank" rel="noreferrer">
+                      <img src={item.image_url} alt={`Работа ${index + 1}`} className="uploadPreviewImg" />
+                    </a>
+                  ))}
+                </div>
+              </>
+            ) : null}
           </article>
 
           <button type="button" className="btn btnPrimary" onClick={() => setEditMode(true)}>
@@ -229,15 +252,29 @@ export default function ProfilePage() {
           <label className="label" htmlFor="social">Ссылка на мессенджер или соцсеть</label>
           <input id="social" className="input" value={socialLinks} onChange={(e) => setSocialLinks(e.target.value)} placeholder="Можно не заполнять, если указан телефон" />
 
-          <label className="label">Ваше фото (аватар)</label>
-          <label className="btn btnGhost fileBtn" htmlFor="avatar">Выбрать фото</label>
-          <input id="avatar" type="file" className="hiddenFileInput" accept="image/*" onChange={(e) => setAvatar(e.target.files?.[0] ?? null)} />
-          <p className="fileHint">{avatar ? avatar.name : "Файл не выбран"}</p>
+          <FileUploadField
+            id="avatar"
+            label="Ваше фото (аватар)"
+            buttonText="Выбрать фото"
+            accept="image/*"
+            files={avatar ? [avatar] : []}
+            onFilesChange={(files) => setAvatar(files[0] ?? null)}
+          />
 
-          <label className="label">Примеры работ</label>
-          <label className="btn btnGhost fileBtn" htmlFor="works">Выбрать файлы</label>
-          <input id="works" type="file" className="hiddenFileInput" accept="image/*" multiple onChange={(e) => setWorks(Array.from(e.target.files ?? []))} />
-          <p className="fileHint">{works.length ? `Выбрано файлов: ${works.length}` : "Файлы не выбраны"}</p>
+          <FileUploadField
+            id="works"
+            label="Примеры работ"
+            buttonText="Выбрать файлы"
+            accept="image/*"
+            multiple
+            files={works}
+            onFilesChange={(files) => setWorks((prev) => mergeWorkFiles(prev, files))}
+            hintEmpty="Файлы не выбраны"
+            showNamesList
+          />
+          {works.length ? (
+            <button type="button" className="btn btnGhost" onClick={() => setWorks([])}>Очистить выбранные файлы</button>
+          ) : null}
 
           <label className="label consentRow" htmlFor="consent">
             <input
@@ -261,11 +298,13 @@ export default function ProfilePage() {
       {success ? <div className="noticeBox noticeOk"><p>{success}</p></div> : null}
       {error ? <div className="noticeBox noticeDanger"><p>{error}</p></div> : null}
 
-      {(me.role === "admin" || me.role === "moderator") ? (
-        <p><Link className="btn btnGhost" href="/admin">Перейти в админ-панель</Link></p>
-      ) : null}
-      <p><Link className="btn btnSecondary" href="/account/ads">Перейти в мои объявления</Link></p>
-      <p><Link className="btn btnGhost" href="/account/password">Сменить пароль</Link></p>
+      <div className="profileQuickLinks">
+        {(me.role === "admin" || me.role === "moderator") ? (
+          <Link className="profileQuickLink" href="/admin">Админ-панель</Link>
+        ) : null}
+        <Link className="profileQuickLink" href="/account/ads">Мои объявления</Link>
+        <Link className="profileQuickLink" href="/account/password">Сменить пароль</Link>
+      </div>
     </section>
   );
 }

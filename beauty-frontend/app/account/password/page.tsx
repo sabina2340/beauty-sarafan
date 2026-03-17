@@ -6,7 +6,6 @@ import { changePassword } from "@/lib/auth-api";
 import { readableApiError } from "@/lib/labels";
 
 export default function ChangePasswordPage() {
-  const [oldPassword, setOldPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
@@ -18,7 +17,7 @@ export default function ChangePasswordPage() {
     setError("");
     setSuccess("");
 
-    if (!oldPassword || !newPassword || !confirmPassword) {
+    if (!newPassword || !confirmPassword) {
       setError("Заполните все поля");
       return;
     }
@@ -30,20 +29,14 @@ export default function ChangePasswordPage() {
       setError("Новый пароль и подтверждение не совпадают");
       return;
     }
-    if (oldPassword === newPassword) {
-      setError("Новый пароль должен отличаться от текущего");
-      return;
-    }
 
     try {
       setLoading(true);
       const res = await changePassword({
-        old_password: oldPassword,
         new_password: newPassword,
         confirm_new_password: confirmPassword,
       });
       setSuccess(res.message || "Пароль успешно изменён");
-      setOldPassword("");
       setNewPassword("");
       setConfirmPassword("");
     } catch (err) {
@@ -57,9 +50,6 @@ export default function ChangePasswordPage() {
     <section className="card authCard">
       <h1 className="h1">Смена пароля</h1>
       <form className="authForm" onSubmit={onSubmit}>
-        <label className="label" htmlFor="old-password">Текущий пароль</label>
-        <input id="old-password" type="password" className="input" value={oldPassword} onChange={(e) => setOldPassword(e.target.value)} required />
-
         <label className="label" htmlFor="new-password">Новый пароль</label>
         <input id="new-password" type="password" className="input" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} required minLength={8} />
 
