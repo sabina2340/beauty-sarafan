@@ -12,8 +12,7 @@ import (
 )
 
 type ChangePasswordRequest struct {
-	OldPassword        string `json:"old_password" binding:"required"`
-	NewPassword        string `json:"new_password" binding:"required,min=8"`
+	NewPassword        string `json:"new_password" binding:"required"`
 	ConfirmNewPassword string `json:"confirm_new_password" binding:"required"`
 }
 
@@ -29,12 +28,19 @@ func PutPassword(c *gin.Context) {
 		return
 	}
 
-	if req.NewPassword != req.ConfirmNewPassword {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "new password and confirmation do not match"})
+	req.NewPassword = strings.TrimSpace(req.NewPassword)
+	req.ConfirmNewPassword = strings.TrimSpace(req.ConfirmNewPassword)
+
+	if req.NewPassword == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "new password is required"})
 		return
 	}
-	if req.NewPassword == req.OldPassword {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "new password must differ from old password"})
+	if len([]rune(req.NewPassword)) < 8 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "new password must be at least 8 characters"})
+		return
+	}
+	if req.NewPassword != req.ConfirmNewPassword {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "new password and confirmation do not match"})
 		return
 	}
 
@@ -44,8 +50,8 @@ func PutPassword(c *gin.Context) {
 		return
 	}
 
-	if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(req.OldPassword)); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "old password is incorrect"})
+	if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(req.NewPassword)); err == nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "new password must differ from current password"})
 		return
 	}
 

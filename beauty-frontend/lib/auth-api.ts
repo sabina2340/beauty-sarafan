@@ -71,7 +71,7 @@ export async function register(payload: { login: string; password: string }) {
   return parseJson<{ message: string; user_id: number; status: string }>(response);
 }
 
-export async function changePassword(payload: { old_password: string; new_password: string; confirm_new_password: string }) {
+export async function changePassword(payload: { new_password: string; confirm_new_password: string }) {
   const response = await fetch(`${API_URL}/me/password`, {
     method: "PUT",
     credentials: "include",

@@ -20,6 +20,14 @@ function profileStatusLabel(status?: string) {
   return "Заполняется";
 }
 
+function mergeWorkFiles(previous: File[], incoming: File[]) {
+  const map = new Map(previous.map((file) => [`${file.name}-${file.size}-${file.lastModified}`, file]));
+  for (const file of incoming) {
+    map.set(`${file.name}-${file.size}-${file.lastModified}`, file);
+  }
+  return Array.from(map.values());
+}
+
 export default function ProfilePage() {
   const [me, setMe] = useState<AuthMe | null>(null);
   const [profile, setProfile] = useState<MyMasterProfile | null>(null);
@@ -94,6 +102,8 @@ export default function ProfilePage() {
     const found = categories.find((c) => String(c.ID ?? c.id ?? "") === target);
     return found?.Name ?? found?.name ?? "Категория не выбрана";
   }, [categories, profile?.category_id, categoryId]);
+
+  const selectedWorkNames = useMemo(() => works.map((file) => file.name), [works]);
 
   const onSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -193,6 +203,19 @@ export default function ProfilePage() {
             <p><strong>Услуги:</strong> {profile?.services || "не указаны"}</p>
             <p><strong>Телефон:</strong> {profile?.phone || "не указан"}</p>
             <p><strong>Мессенджер/соцсеть:</strong> {profile?.social_links || "не указан"}</p>
+            {profile?.work_images && profile.work_images.length > 0 ? (
+              <>
+                <div className="divider" />
+                <h3>Примеры работ</h3>
+                <div className="uploadPreviewGrid">
+                  {profile.work_images.map((item, index) => (
+                    <a key={`${item.image_url}-${index}`} href={item.image_url} target="_blank" rel="noreferrer">
+                      <img src={item.image_url} alt={`Работа ${index + 1}`} className="uploadPreviewImg" />
+                    </a>
+                  ))}
+                </div>
+              </>
+            ) : null}
           </article>
 
           <button type="button" className="btn btnPrimary" onClick={() => setEditMode(true)}>
@@ -236,8 +259,16 @@ export default function ProfilePage() {
 
           <label className="label">Примеры работ</label>
           <label className="btn btnGhost fileBtn" htmlFor="works">Выбрать файлы</label>
-          <input id="works" type="file" className="hiddenFileInput" accept="image/*" multiple onChange={(e) => setWorks(Array.from(e.target.files ?? []))} />
-          <p className="fileHint">{works.length ? `Выбрано файлов: ${works.length}` : "Файлы не выбраны"}</p>
+          <input id="works" type="file" className="hiddenFileInput" accept="image/*" multiple onChange={(e) => setWorks((prev) => mergeWorkFiles(prev, Array.from(e.target.files ?? [])))} />
+          <p className="fileHint">{works.length ? `Добавлено файлов: ${works.length}` : "Файлы не выбраны"}</p>
+          {selectedWorkNames.length ? (
+            <div className="uploadNamesList" aria-live="polite">
+              {selectedWorkNames.map((name, index) => <span key={`${name}-${index}`} className="uploadNameChip">{name}</span>)}
+            </div>
+          ) : null}
+          {works.length ? (
+            <button type="button" className="btn btnGhost" onClick={() => setWorks([])}>Очистить выбранные файлы</button>
+          ) : null}
 
           <label className="label consentRow" htmlFor="consent">
             <input
