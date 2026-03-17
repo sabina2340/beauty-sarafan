@@ -3,6 +3,7 @@
 import { FormEvent, useState } from "react";
 import { createMasterReview } from "@/lib/api";
 import { ReviewItem } from "@/lib/types";
+import { FileUploadField } from "@/components/FileUploadField";
 
 type Props = {
   masterId: string;
@@ -73,7 +74,15 @@ export function MasterReviewsSection({ masterId, initialReviews }: Props) {
       <form className="authForm" onSubmit={onSubmit}>
         <input className="input" placeholder="Номер телефона" value={phone} onChange={(e) => setPhone(e.target.value)} maxLength={20} required />
         <textarea className="textarea" placeholder="Опишите ваш опыт (10–1000 символов)" value={text} onChange={(e) => setText(e.target.value)} minLength={10} maxLength={1000} required />
-        <input className="input" type="file" accept="image/jpeg,image/png,image/webp" onChange={(e) => setPhoto(e.target.files?.[0] || null)} required />
+        <FileUploadField
+          id="review-photo"
+          label="Фото услуги"
+          buttonText="Выбрать фото"
+          accept="image/jpeg,image/png,image/webp"
+          required
+          selectedFiles={photo ? [photo] : []}
+          onFilesChange={(files) => setPhoto(files[0] ?? null)}
+        />
         <label className="consentRow">
           <input type="checkbox" checked={consent} onChange={(e) => setConsent(e.target.checked)} required />
           <span>

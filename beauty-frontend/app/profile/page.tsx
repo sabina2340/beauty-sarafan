@@ -4,6 +4,7 @@ import Link from "next/link";
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { acceptPersonalDataConsent, authMe, getMyProfile, getPersonalDataConsent, upsertMyProfile, type AuthMe, type MyMasterProfile } from "@/lib/auth-api";
 import { readableApiError } from "@/lib/labels";
+import { FileUploadField } from "@/components/FileUploadField";
 
 type Category = { ID?: number; Name?: string; id?: number; name?: string };
 
@@ -103,7 +104,6 @@ export default function ProfilePage() {
     return found?.Name ?? found?.name ?? "Категория не выбрана";
   }, [categories, profile?.category_id, categoryId]);
 
-  const selectedWorkNames = useMemo(() => works.map((file) => file.name), [works]);
 
   const onSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -252,20 +252,26 @@ export default function ProfilePage() {
           <label className="label" htmlFor="social">Ссылка на мессенджер или соцсеть</label>
           <input id="social" className="input" value={socialLinks} onChange={(e) => setSocialLinks(e.target.value)} placeholder="Можно не заполнять, если указан телефон" />
 
-          <label className="label">Ваше фото (аватар)</label>
-          <label className="btn btnGhost fileBtn" htmlFor="avatar">Выбрать фото</label>
-          <input id="avatar" type="file" className="hiddenFileInput" accept="image/*" onChange={(e) => setAvatar(e.target.files?.[0] ?? null)} />
-          <p className="fileHint">{avatar ? avatar.name : "Файл не выбран"}</p>
+          <FileUploadField
+            id="avatar"
+            label="Ваше фото (аватар)"
+            buttonText="Выбрать фото"
+            accept="image/*"
+            selectedFiles={avatar ? [avatar] : []}
+            onFilesChange={(files) => setAvatar(files[0] ?? null)}
+          />
 
-          <label className="label">Примеры работ</label>
-          <label className="btn btnGhost fileBtn" htmlFor="works">Выбрать файлы</label>
-          <input id="works" type="file" className="hiddenFileInput" accept="image/*" multiple onChange={(e) => setWorks((prev) => mergeWorkFiles(prev, Array.from(e.target.files ?? [])))} />
-          <p className="fileHint">{works.length ? `Добавлено файлов: ${works.length}` : "Файлы не выбраны"}</p>
-          {selectedWorkNames.length ? (
-            <div className="uploadNamesList" aria-live="polite">
-              {selectedWorkNames.map((name, index) => <span key={`${name}-${index}`} className="uploadNameChip">{name}</span>)}
-            </div>
-          ) : null}
+          <FileUploadField
+            id="works"
+            label="Примеры работ"
+            buttonText="Выбрать файлы"
+            accept="image/*"
+            multiple
+            selectedFiles={works}
+            showFileList
+            emptyText="Файлы не выбраны"
+            onFilesChange={(files) => setWorks((prev) => mergeWorkFiles(prev, files))}
+          />
           {works.length ? (
             <button type="button" className="btn btnGhost" onClick={() => setWorks([])}>Очистить выбранные файлы</button>
           ) : null}

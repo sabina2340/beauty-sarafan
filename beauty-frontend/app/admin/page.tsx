@@ -25,6 +25,7 @@ import {
   deleteReview,
   type AdminReview,
 } from "@/lib/admin-api";
+import { FileUploadField } from "@/components/FileUploadField";
 
 type ModerationStatus = "pending" | "approved" | "rejected";
 type AdStatus = "pending" | "approved" | "rejected" | "active" | "expired";
@@ -382,7 +383,17 @@ export default function AdminPage() {
               <option value="active">active</option>
               <option value="expired">expired</option>
             </select>
-            <input className="input" type="file" accept="image/*" multiple onChange={(e) => setEditAdImages(Array.from(e.target.files ?? []))} />
+            <FileUploadField
+              id="edit-ad-images"
+              label="Фото объявления"
+              buttonText="Выбрать файлы"
+              accept="image/*"
+              multiple
+              selectedFiles={editAdImages}
+              showFileList
+              emptyText="Файлы не выбраны"
+              onFilesChange={setEditAdImages}
+            />
             <div className="adminActions">
               <button className="btn btnPrimary" onClick={saveEditedAd}>Сохранить</button>
               <button className="btn btnGhost" onClick={() => setEditAdId(null)}>Отмена</button>
@@ -451,8 +462,15 @@ export default function AdminPage() {
           <label className="label" htmlFor="equipment-contact">Контакт для связи</label>
           <input id="equipment-contact" className="input" value={equipmentContact} onChange={(e) => setEquipmentContact(e.target.value)} required />
 
-          <label className="label" htmlFor="equipment-image">Фото</label>
-          <input id="equipment-image" className="input" type="file" accept="image/*" onChange={(e) => setEquipmentImage(e.target.files?.[0] || null)} required />
+          <FileUploadField
+            id="equipment-image"
+            label="Фото"
+            buttonText="Выбрать фото"
+            accept="image/*"
+            required
+            selectedFiles={equipmentImage ? [equipmentImage] : []}
+            onFilesChange={(files) => setEquipmentImage(files[0] ?? null)}
+          />
 
           <button className="btn btnPrimary" type="submit">Добавить в каталог</button>
         </form>

@@ -2,6 +2,7 @@
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { createAd } from "@/lib/ads-api";
+import { FileUploadField } from "@/components/FileUploadField";
 
 type Category = { ID: number; Name: string };
 
@@ -71,7 +72,17 @@ export default function NewAdPage() {
             <option key={category.ID} value={category.ID}>{category.Name || "Без названия"}</option>
           ))}
         </select>
-        <input className="input" type="file" accept="image/*" multiple onChange={(e) => setImageFiles(Array.from(e.target.files ?? []))} />
+        <FileUploadField
+          id="new-ad-images"
+          label="Фото объявления"
+          buttonText="Выбрать файлы"
+          accept="image/*"
+          multiple
+          selectedFiles={imageFiles}
+          showFileList
+          emptyText="Файлы не выбраны"
+          onFilesChange={setImageFiles}
+        />
         {imageFiles.length ? (
           <>
             <p className="muted">Выбрано файлов: {imageFiles.length}</p>
