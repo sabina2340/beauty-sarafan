@@ -30,7 +30,7 @@ export default function PaymentPage({ params }: { params: { id: string } }) {
 
   const onMarkPaid = async () => {
     if (!paymentId) {
-      setError("Не найден id платежа. Обновите страницу.");
+      setError("Не найден номер платежа. Обновите страницу.");
       return;
     }
 

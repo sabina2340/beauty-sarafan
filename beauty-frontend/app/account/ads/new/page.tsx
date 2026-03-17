@@ -59,7 +59,7 @@ export default function NewAdPage() {
       <h1 className="h1">Новое объявление</h1>
       <form className="authForm" onSubmit={onSubmit}>
         <select className="select" value={type} onChange={(e) => setType(e.target.value)} required>
-          <option value="service">Частный мастер</option>
+          <option value="service">Услуга</option>
           <option value="cabinet">Кабинет</option>
           <option value="salon">Салон</option>
         </select>

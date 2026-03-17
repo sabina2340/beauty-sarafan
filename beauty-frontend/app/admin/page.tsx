@@ -252,7 +252,7 @@ export default function AdminPage() {
   return (
     <section className="adminPage">
       <h1 className="h1">Админ-панель</h1>
-      <p className="muted">Минимальная панель для endpoint-ов /admin из backend.</p>
+      <p className="muted">Панель для управления приложением</p>
 
       {message ? <p className="adminOk">✅ {message}</p> : null}
       {error ? <p className="adminError">❌ {error}</p> : null}

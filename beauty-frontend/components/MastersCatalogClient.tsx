@@ -47,7 +47,7 @@ export function MastersCatalogClient() {
       <p className="lead">Выберите мастера и свяжитесь с ним в 1 клик.</p>
 
       <form className="filters" onSubmit={(e) => e.preventDefault()}>
-        <input value={slug} onChange={(e) => updateFilters({ slug: e.target.value })} placeholder="Категория (slug)" />
+        <input value={slug} onChange={(e) => updateFilters({ slug: e.target.value })} placeholder="Категория" />
         <input value={city} onChange={(e) => updateFilters({ city: e.target.value })} placeholder="Город" />
         <input value={q} onChange={(e) => updateFilters({ q: e.target.value })} placeholder="Имя мастера" />
         <button type="button" className="btn btnGhost" onClick={() => router.replace(pathname)}>Сбросить</button>
