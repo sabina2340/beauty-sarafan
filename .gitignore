@@ -2,7 +2,8 @@
 beauty-frontend/node_modules/
 beauty-frontend/.next/
 beauty-frontend/out/
-beauty-frontend/.env.local
+beauty-frontend/.env.local:
 .env
 .env.local
 .env.*.local
+.env.production

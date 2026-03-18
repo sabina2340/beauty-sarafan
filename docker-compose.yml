@@ -1,0 +1,38 @@
+version: "3.9"
+
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    container_name: beauty_backend
+    restart: always
+    env_file:
+      - .env.production
+    expose:
+      - "8080"
+
+  frontend:
+    build:
+      context: ./beauty-frontend
+      dockerfile: Dockerfile
+    container_name: beauty_frontend
+    restart: always
+    env_file:
+      - .env.production
+    expose:
+      - "3000"
+    depends_on:
+      - backend
+
+  nginx:
+    image: nginx:stable-alpine
+    container_name: beauty_nginx
+    restart: always
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - frontend
+      - backend
