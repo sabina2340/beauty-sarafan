@@ -8,6 +8,8 @@
   --text: #181818;
   --muted: #666;
   --line: rgba(0, 0, 0, 0.1);
+  --bottom-nav-safe-area: env(safe-area-inset-bottom, 0px);
+  --bottom-nav-offset: calc(96px + var(--bottom-nav-safe-area));
 }
 
 * {
@@ -39,7 +41,7 @@ img {
   margin: 0 auto;
 }
 .page {
-  padding: 82px 0 132px;
+  padding: 82px 0 var(--bottom-nav-offset);
   flex: 1;
 }
 
@@ -113,27 +115,31 @@ img {
 }
 
 .siteFooter {
-  padding: 20px 0 24px;
+  padding: 20px 0 calc(24px + var(--bottom-nav-offset));
   color: var(--muted);
   text-align: center;
   margin-top: 6px;
-  margin-bottom: 110px;
   background: #fff;
   border-top: 1px solid var(--line);
   position: relative;
   z-index: 1;
 }
+.footerWrap {
+  display: grid;
+  gap: 8px;
+}
 .footerLinks {
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
-  gap: 10px;
+  gap: 10px 14px;
   margin-top: 8px;
 }
 .footerLinks a {
   color: #333;
   text-decoration: none;
   font-size: 14px;
+  white-space: normal;
 }
 
 .card {
@@ -822,17 +828,20 @@ h4 {
 
 .bottomNav {
   position: fixed;
-  bottom: max(env(safe-area-inset-bottom), 0px);
+  bottom: 0;
   left: 0;
   right: 0;
   z-index: 60;
-  display: grid;
-  grid-auto-flow: column;
-  grid-auto-columns: minmax(76px, 1fr);
-  gap: 6px;
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: stretch;
+  gap: 8px;
   overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
   scrollbar-width: none;
-  padding: 8px 10px calc(10px + env(safe-area-inset-bottom));
+  padding: 8px 10px calc(10px + var(--bottom-nav-safe-area));
   background: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(8px);
   border-top: 1px solid var(--line);
@@ -840,7 +849,8 @@ h4 {
 
 .bottomNavItem {
   border: 0;
-  width: 100%;
+  flex: 0 0 auto;
+  min-width: 92px;
   border-radius: 14px;
   text-decoration: none;
   color: #565656;
@@ -852,8 +862,9 @@ h4 {
   line-height: 1.15;
   font-weight: 700;
   background: #f3f3f3;
-  padding: 6px 4px;
+  padding: 6px 10px;
   text-align: center;
+  white-space: nowrap;
 }
 
 .bottomNavItem > span:first-child {
@@ -914,15 +925,13 @@ h4 {
   }
   .page {
     padding-top: 74px;
-    padding-bottom: 148px;
+    padding-bottom: var(--bottom-nav-offset);
   }
   .topBar {
     height: 60px;
   }
-  .bottomNav {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
   .bottomNavItem {
+    min-width: 88px;
     min-height: 54px;
     font-size: 11px;
   }
@@ -936,9 +945,15 @@ h4 {
     left: 50%;
     transform: translateX(-50%);
     width: min(760px, calc(100% - 40px));
+    justify-content: center;
+    overflow-x: visible;
     border: 1px solid var(--line);
     border-radius: 18px 18px 0 0;
-    grid-template-columns: repeat(7, minmax(0, 1fr));
+  }
+
+  .bottomNavItem {
+    flex: 1 1 0;
+    min-width: 0;
   }
 }
 
@@ -973,7 +988,7 @@ h4 {
 
 @media (max-width: 768px) {
   .page {
-    padding-bottom: 152px;
+    padding-bottom: var(--bottom-nav-offset);
   }
   .grid2 {
     grid-template-columns: 1fr;
