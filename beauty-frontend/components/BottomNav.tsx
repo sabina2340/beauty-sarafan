@@ -19,7 +19,9 @@ export function BottomNav() {
 
   useEffect(() => {
     let active = true;
-    authMe().then((data) => active && setMe(data)).catch(() => active && setMe(null));
+    authMe()
+      .then((data) => active && setMe(data))
+      .catch(() => active && setMe(null));
     return () => {
       active = false;
     };
@@ -30,6 +32,8 @@ export function BottomNav() {
       { href: "/#categories", label: "Категории", icon: "🧭" },
       { href: "/", label: "Главная", icon: "🏠" },
       { href: "/masters", label: "Мастера", icon: "🔎" },
+      { href: "/hot-offers", label: "Горячие", icon: "🔥" },
+      { href: "/equipment", label: "Оборуд.", icon: "🧰" },
     ];
 
     if (!me) {
@@ -59,11 +63,21 @@ export function BottomNav() {
     <nav className="bottomNav" aria-label="Нижняя навигация">
       {items.map((item) => {
         const isHomeCategory = item.href.startsWith("/#") && pathname === "/";
-        const active = isHomeCategory || pathname === item.href || (item.href !== "/" && !item.href.startsWith("/#") && pathname.startsWith(item.href));
+        const active =
+          isHomeCategory ||
+          pathname === item.href ||
+          (item.href !== "/" &&
+            !item.href.startsWith("/#") &&
+            pathname.startsWith(item.href));
 
         if (item.action === "logout") {
           return (
-            <button key={item.label} type="button" className="bottomNavItem" onClick={onLogout}>
+            <button
+              key={item.label}
+              type="button"
+              className="bottomNavItem"
+              onClick={onLogout}
+            >
               <span aria-hidden>{item.icon}</span>
               <span>{item.label}</span>
             </button>
@@ -71,7 +85,11 @@ export function BottomNav() {
         }
 
         return (
-          <Link key={item.href} href={item.href} className={`bottomNavItem ${active ? "active" : ""}`}>
+          <Link
+            key={item.href}
+            href={item.href}
+            className={`bottomNavItem ${active ? "active" : ""}`}
+          >
             <span aria-hidden>{item.icon}</span>
             <span>{item.label}</span>
           </Link>

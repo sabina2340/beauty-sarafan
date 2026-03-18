@@ -4,17 +4,7 @@ import {
   MasterDetail,
   ReviewItem,
 } from "@/lib/types";
-
-const API_URL = "/api";
-const SERVER_API_URL =
-  process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8080";
-
-function apiUrl(path: string) {
-  if (typeof window !== "undefined") {
-    return `${API_URL}${path}`;
-  }
-  return `${SERVER_API_URL}${path}`;
-}
+import { buildApiUrl } from "@/lib/api-base";
 
 async function parseResponse<T>(response: Response): Promise<T> {
   if (!response.ok) {
@@ -27,7 +17,7 @@ async function parseResponse<T>(response: Response): Promise<T> {
 }
 
 export async function getMasters(params?: {
-  category?: string; // <-- было slug, делаем понятное имя под UI
+  category?: string;
   city?: string;
   q?: string;
 }): Promise<MasterCard[]> {
@@ -36,25 +26,27 @@ export async function getMasters(params?: {
   if (params?.city) query.set("city", params.city);
   if (params?.q) query.set("q", params.q);
 
-  const url = `${apiUrl("/masters")}${query.toString() ? `?${query.toString()}` : ""}`;
+  const url = `${buildApiUrl("/masters")}${query.toString() ? `?${query.toString()}` : ""}`;
   const response = await fetch(url, { cache: "no-store" });
   return parseResponse<MasterCard[]>(response);
 }
 
 export async function getMasterById(id: string): Promise<MasterDetail> {
-  const response = await fetch(apiUrl(`/masters/${id}`), { cache: "no-store" });
+  const response = await fetch(buildApiUrl(`/masters/${id}`), {
+    cache: "no-store",
+  });
   return parseResponse<MasterDetail>(response);
 }
 
 export async function getMasterAds(id: string): Promise<Advertisement[]> {
-  const response = await fetch(apiUrl(`/masters/${id}/ads`), {
+  const response = await fetch(buildApiUrl(`/masters/${id}/ads`), {
     cache: "no-store",
   });
   return parseResponse<Advertisement[]>(response);
 }
 
 export async function getMasterReviews(id: string): Promise<ReviewItem[]> {
-  const response = await fetch(apiUrl(`/masters/${id}/reviews`), {
+  const response = await fetch(buildApiUrl(`/masters/${id}/reviews`), {
     cache: "no-store",
   });
   return parseResponse<ReviewItem[]>(response);
@@ -83,7 +75,7 @@ export async function createMasterReview(
     payload.personal_data_consent_type || "privacy_policy_v1",
   );
 
-  const response = await fetch(apiUrl(`/masters/${id}/reviews`), {
+  const response = await fetch(buildApiUrl(`/masters/${id}/reviews`), {
     method: "POST",
     body: formData,
   });
@@ -97,7 +89,7 @@ export async function createSupportRequest(payload: {
   contact: string;
   message: string;
 }) {
-  const response = await fetch(apiUrl(`/support-requests`), {
+  const response = await fetch(buildApiUrl(`/support-requests`), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),

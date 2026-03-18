@@ -1,13 +1,11 @@
 import { Advertisement } from "@/lib/types";
-
-const API_URL =
-  typeof window === "undefined"
-    ? (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080")
-    : "/api";
+import { buildApiUrl } from "@/lib/api-base";
 
 async function parseResponse<T>(response: Response): Promise<T> {
   if (!response.ok) {
-    const payload = await response.json().catch(() => ({ error: "Request failed" }));
+    const payload = await response
+      .json()
+      .catch(() => ({ error: "Request failed" }));
     throw new Error(payload.error || `Request failed: ${response.status}`);
   }
   return (await response.json()) as T;
@@ -59,7 +57,9 @@ export async function createAd(payload: {
   formData.append("title", payload.title);
   formData.append("description", payload.description);
   formData.append("city", payload.city);
-  if (payload.category_id) formData.append("category_id", String(payload.category_id));
+  if (payload.category_id) {
+    formData.append("category_id", String(payload.category_id));
+  }
   for (const imageUrl of payload.image_urls || []) {
     formData.append("image_urls[]", imageUrl);
   }
@@ -67,36 +67,44 @@ export async function createAd(payload: {
     formData.append("images[]", file);
   }
 
-  const response = await fetch(`${API_URL}/advertisements`, {
+  const response = await fetch(buildApiUrl("/advertisements"), {
     method: "POST",
     credentials: "include",
     body: formData,
   });
-  return parseResponse<{ message: string; advertisement: Advertisement }>(response);
+  return parseResponse<{ message: string; advertisement: Advertisement }>(
+    response,
+  );
 }
 
 export async function getMyAds() {
-  const response = await fetch(`${API_URL}/advertisements/my`, { credentials: "include", cache: "no-store" });
+  const response = await fetch(buildApiUrl("/advertisements/my"), {
+    credentials: "include",
+    cache: "no-store",
+  });
   return parseResponse<MyAdItem[]>(response);
 }
 
 export async function getTariffs() {
-  const response = await fetch(`${API_URL}/tariffs`, { cache: "no-store" });
+  const response = await fetch(buildApiUrl("/tariffs"), { cache: "no-store" });
   return parseResponse<Tariff[]>(response);
 }
 
 export async function selectTariff(adId: number, tariffId: number) {
-  const response = await fetch(`${API_URL}/advertisements/${adId}/select-tariff`, {
-    method: "POST",
-    credentials: "include",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ tariff_id: tariffId }),
-  });
+  const response = await fetch(
+    buildApiUrl(`/advertisements/${adId}/select-tariff`),
+    {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ tariff_id: tariffId }),
+    },
+  );
   return parseResponse<{ payment_id: number; redirect: string }>(response);
 }
 
 export async function getAdPayment(adId: number) {
-  const response = await fetch(`${API_URL}/advertisements/${adId}/payment`, {
+  const response = await fetch(buildApiUrl(`/advertisements/${adId}/payment`), {
     credentials: "include",
     cache: "no-store",
   });
@@ -104,7 +112,7 @@ export async function getAdPayment(adId: number) {
 }
 
 export async function markPaid(paymentId: number, comment: string) {
-  const response = await fetch(`${API_URL}/payments/${paymentId}/mark-paid`, {
+  const response = await fetch(buildApiUrl(`/payments/${paymentId}/mark-paid`), {
     method: "POST",
     credentials: "include",
     headers: { "Content-Type": "application/json" },
@@ -114,17 +122,21 @@ export async function markPaid(paymentId: number, comment: string) {
 }
 
 export async function getHotOffers() {
-  const response = await fetch(`${API_URL}/hot-offers`, { cache: "no-store" });
+  const response = await fetch(buildApiUrl("/hot-offers"), {
+    cache: "no-store",
+  });
   return parseResponse<ActiveAdCard[]>(response);
 }
 
 export async function getActiveAds(limit = 10) {
-  const response = await fetch(`${API_URL}/ads/active?limit=${limit}`, { cache: "no-store" });
+  const response = await fetch(buildApiUrl(`/ads/active?limit=${limit}`), {
+    cache: "no-store",
+  });
   return parseResponse<ActiveAdCard[]>(response);
 }
 
 export async function getAdminPendingPayments() {
-  const response = await fetch(`${API_URL}/admin/payments/pending`, {
+  const response = await fetch(buildApiUrl("/admin/payments/pending"), {
     credentials: "include",
     cache: "no-store",
   });
@@ -132,7 +144,7 @@ export async function getAdminPendingPayments() {
 }
 
 export async function confirmPayment(paymentId: number) {
-  const response = await fetch(`${API_URL}/admin/payments/${paymentId}/confirm`, {
+  const response = await fetch(buildApiUrl(`/admin/payments/${paymentId}/confirm`), {
     method: "POST",
     credentials: "include",
   });
@@ -140,7 +152,7 @@ export async function confirmPayment(paymentId: number) {
 }
 
 export async function rejectPayment(paymentId: number) {
-  const response = await fetch(`${API_URL}/admin/payments/${paymentId}/reject`, {
+  const response = await fetch(buildApiUrl(`/admin/payments/${paymentId}/reject`), {
     method: "POST",
     credentials: "include",
   });
