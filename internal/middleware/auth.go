@@ -5,7 +5,6 @@ import (
 	jwtutil "beauty-sarafan/internal/jwt"
 	"beauty-sarafan/internal/models"
 	"net/http"
-	"strings"
 
 	"github.com/gin-gonic/gin"
 )
@@ -14,14 +13,6 @@ func AuthMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		token, err := c.Cookie("access_token")
 		if err != nil || token == "" {
-			header := c.GetHeader("Authorization")
-			parts := strings.SplitN(header, " ", 2)
-			if len(parts) == 2 && strings.EqualFold(parts[0], "Bearer") {
-				token = parts[1]
-			}
-		}
-
-		if token == "" {
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "missing access token"})
 			return
 		}

@@ -52,7 +52,7 @@ func Login(c *gin.Context) {
 	}
 
 	maxAge := int(expiresIn)
-	c.SetCookie("access_token", token, maxAge, "/", "", false, true)
+	setAccessTokenCookie(c, token, maxAge)
 
 	c.JSON(http.StatusOK, gin.H{
 		"message": "ok",
