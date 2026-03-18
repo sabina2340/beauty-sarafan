@@ -23,12 +23,18 @@ import {
   getAdminReviews,
   moderateReview,
   deleteReview,
+  getAdminSupportRequests,
+  getAdminSupportRequest,
+  updateAdminSupportRequestStatus,
+  deleteAdminSupportRequest,
   type AdminReview,
+  type AdminSupportRequest,
 } from "@/lib/admin-api";
 import { FileUploadField } from "@/components/FileUploadField";
 
 type ModerationStatus = "pending" | "approved" | "rejected";
 type AdStatus = "pending" | "approved" | "rejected" | "active" | "expired";
+type SupportStatus = "new" | "in_progress" | "closed";
 
 export default function AdminPage() {
   const [message, setMessage] = useState<string>("");
@@ -49,7 +55,9 @@ export default function AdminPage() {
 
   const [categoryName, setCategoryName] = useState("");
   const [categorySlug, setCategorySlug] = useState("");
-  const [categoryAudience, setCategoryAudience] = useState<"master" | "client" | "both">("both");
+  const [categoryAudience, setCategoryAudience] = useState<
+    "master" | "client" | "both"
+  >("both");
   const [categoryGroupName, setCategoryGroupName] = useState("");
   const [categoryGroupTitle, setCategoryGroupTitle] = useState("");
   const [categoryBusiness, setCategoryBusiness] = useState(false);
@@ -61,13 +69,31 @@ export default function AdminPage() {
   const [equipmentImage, setEquipmentImage] = useState<File | null>(null);
   const [reviewStatus, setReviewStatus] = useState<ModerationStatus>("pending");
   const [reviews, setReviews] = useState<AdminReview[]>([]);
-  const [reviewCommentById, setReviewCommentById] = useState<Record<number, string>>({});
+  const [supportStatus, setSupportStatus] = useState<SupportStatus>("new");
+  const [supportRequests, setSupportRequests] = useState<AdminSupportRequest[]>(
+    [],
+  );
+  const [selectedSupportRequest, setSelectedSupportRequest] =
+    useState<AdminSupportRequest | null>(null);
+  const [reviewCommentById, setReviewCommentById] = useState<
+    Record<number, string>
+  >({});
   const [rejectModalOpen, setRejectModalOpen] = useState(false);
   const [rejectReason, setRejectReason] = useState("");
   const [rejectError, setRejectError] = useState("");
-  const [rejectTarget, setRejectTarget] = useState<{ kind: "ad" | "user"; id: number } | null>(null);
+  const [rejectTarget, setRejectTarget] = useState<{
+    kind: "ad" | "user";
+    id: number;
+  } | null>(null);
 
-  const statusOptions = useMemo(() => ["pending", "approved", "rejected"] as const, []);
+  const statusOptions = useMemo(
+    () => ["pending", "approved", "rejected"] as const,
+    [],
+  );
+  const supportStatusOptions = useMemo(
+    () => ["new", "in_progress", "closed"] as const,
+    [],
+  );
 
   const setOk = (text: string) => {
     setMessage(text);
@@ -113,7 +139,14 @@ export default function AdminPage() {
   const onCreateCategory = async (e: FormEvent) => {
     e.preventDefault();
     try {
-      await createCategory({ name: categoryName, slug: categorySlug, group_name: categoryGroupName, group_title: categoryGroupTitle, audience: categoryAudience, is_business: categoryBusiness });
+      await createCategory({
+        name: categoryName,
+        slug: categorySlug,
+        group_name: categoryGroupName,
+        group_title: categoryGroupTitle,
+        audience: categoryAudience,
+        is_business: categoryBusiness,
+      });
       setOk("Категория создана");
       setCategoryName("");
       setCategorySlug("");
@@ -174,6 +207,70 @@ export default function AdminPage() {
     }
   };
 
+  const loadSupportRequests = async () => {
+    try {
+      const res = await getAdminSupportRequests(supportStatus);
+      const safeList = Array.isArray(res) ? res : [];
+      setSupportRequests(safeList);
+      if (selectedSupportRequest) {
+        const refreshed =
+          safeList.find((item) => item.id === selectedSupportRequest.id) ||
+          null;
+        setSelectedSupportRequest(refreshed);
+      }
+      setOk(`Загружено обращений: ${safeList.length}`);
+    } catch (e) {
+      setFail(e);
+    }
+  };
+
+  const openSupportRequest = async (id: number) => {
+    try {
+      const item = await getAdminSupportRequest(id);
+      setSelectedSupportRequest(item);
+      setOk(`Открыта заявка #${id}`);
+    } catch (e) {
+      setFail(e);
+    }
+  };
+
+  const changeSupportStatus = async (id: number, status: SupportStatus) => {
+    try {
+      await updateAdminSupportRequestStatus(id, status);
+      setSupportRequests((prev) =>
+        prev.map((item) => (item.id === id ? { ...item, status } : item)),
+      );
+      setSelectedSupportRequest((prev) =>
+        prev && prev.id === id ? { ...prev, status } : prev,
+      );
+      setOk("Статус заявки обновлён");
+    } catch (e) {
+      setFail(e);
+    }
+  };
+
+  const removeSupportRequest = async (id: number) => {
+    try {
+      await deleteAdminSupportRequest(id);
+      setSupportRequests((prev) => prev.filter((item) => item.id !== id));
+      setSelectedSupportRequest((prev) => (prev?.id === id ? null : prev));
+      setOk("Заявка удалена");
+    } catch (e) {
+      setFail(e);
+    }
+  };
+
+  const supportStatusLabel: Record<SupportStatus, string> = {
+    new: "Новая",
+    in_progress: "В работе",
+    closed: "Закрыта",
+  };
+
+  const formatSupportDate = (value: string) =>
+    new Date(value).toLocaleString("ru-RU");
+
+  const getSupportPreview = (value: string) =>
+    value.length > 150 ? `${value.slice(0, 150)}…` : value;
 
   const loadReviews = async () => {
     try {
@@ -185,7 +282,6 @@ export default function AdminPage() {
       setFail(e);
     }
   };
-
 
   const loadEquipment = async () => {
     try {
@@ -268,37 +364,82 @@ export default function AdminPage() {
         <article className="card adminCard">
           <h2 className="h3">Категории</h2>
           <form className="authForm" onSubmit={onCreateCategory}>
-            <label className="label" htmlFor="category-name">Название</label>
-            <input id="category-name" className="input" value={categoryName} onChange={(e) => setCategoryName(e.target.value)} required />
+            <label className="label" htmlFor="category-name">
+              Название
+            </label>
+            <input
+              id="category-name"
+              className="input"
+              value={categoryName}
+              onChange={(e) => setCategoryName(e.target.value)}
+              required
+            />
 
-            <label className="label" htmlFor="category-slug">Slug</label>
-            <input id="category-slug" className="input" value={categorySlug} onChange={(e) => setCategorySlug(e.target.value)} required />
+            <label className="label" htmlFor="category-slug">
+              Slug
+            </label>
+            <input
+              id="category-slug"
+              className="input"
+              value={categorySlug}
+              onChange={(e) => setCategorySlug(e.target.value)}
+              required
+            />
 
+            <label className="label" htmlFor="category-group-name">
+              Group name
+            </label>
+            <input
+              id="category-group-name"
+              className="input"
+              value={categoryGroupName}
+              onChange={(e) => setCategoryGroupName(e.target.value)}
+              required
+            />
 
+            <label className="label" htmlFor="category-group-title">
+              Group title
+            </label>
+            <input
+              id="category-group-title"
+              className="input"
+              value={categoryGroupTitle}
+              onChange={(e) => setCategoryGroupTitle(e.target.value)}
+              required
+            />
 
-            <label className="label" htmlFor="category-group-name">Group name</label>
-            <input id="category-group-name" className="input" value={categoryGroupName} onChange={(e) => setCategoryGroupName(e.target.value)} required />
-
-            <label className="label" htmlFor="category-group-title">Group title</label>
-            <input id="category-group-title" className="input" value={categoryGroupTitle} onChange={(e) => setCategoryGroupTitle(e.target.value)} required />
-
-            <label className="label" style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <input type="checkbox" checked={categoryBusiness} onChange={(e) => setCategoryBusiness(e.target.checked)} />
+            <label
+              className="label"
+              style={{ display: "flex", alignItems: "center", gap: 8 }}
+            >
+              <input
+                type="checkbox"
+                checked={categoryBusiness}
+                onChange={(e) => setCategoryBusiness(e.target.checked)}
+              />
               Бизнес-категория
             </label>
-            <label className="label" htmlFor="category-audience">Аудитория</label>
+            <label className="label" htmlFor="category-audience">
+              Аудитория
+            </label>
             <select
               id="category-audience"
               className="select"
               value={categoryAudience}
-              onChange={(e) => setCategoryAudience(e.target.value as "master" | "client" | "both")}
+              onChange={(e) =>
+                setCategoryAudience(
+                  e.target.value as "master" | "client" | "both",
+                )
+              }
             >
               <option value="master">master</option>
               <option value="client">client</option>
               <option value="both">both</option>
             </select>
 
-            <button className="btn btnPrimary" type="submit">Создать категорию</button>
+            <button className="btn btnPrimary" type="submit">
+              Создать категорию
+            </button>
           </form>
         </article>
       </div>
@@ -307,12 +448,22 @@ export default function AdminPage() {
         <div className="adminSectionHeader">
           <h2 className="h3">Модерация мастеров</h2>
           <div className="adminControls">
-            <select className="select" value={masterStatus} onChange={(e) => setMasterStatus(e.target.value as ModerationStatus)}>
+            <select
+              className="select"
+              value={masterStatus}
+              onChange={(e) =>
+                setMasterStatus(e.target.value as ModerationStatus)
+              }
+            >
               {statusOptions.map((status) => (
-                <option key={status} value={status}>{status}</option>
+                <option key={status} value={status}>
+                  {status}
+                </option>
               ))}
             </select>
-            <button className="btn btnSecondary" onClick={loadMasters}>Загрузить</button>
+            <button className="btn btnSecondary" onClick={loadMasters}>
+              Загрузить
+            </button>
           </div>
         </div>
 
@@ -320,22 +471,73 @@ export default function AdminPage() {
           {masters.map((master) => (
             <div key={master.user_id} className="adminItem">
               <div>
-                {master.avatar_url ? <img src={master.avatar_url} alt={master.full_name || master.login} style={{ width: 64, height: 64, borderRadius: 12, objectFit: "cover", marginBottom: 8 }} /> : null}
-                <strong>{master.full_name || master.login}</strong> · {master.city || "—"}
-                <p className="muted">ID: {master.user_id} · role: {master.role} · status: {master.status}</p>
-                <p className="muted">{master.description || "Описание не заполнено"}</p>
+                {master.avatar_url ? (
+                  <img
+                    src={master.avatar_url}
+                    alt={master.full_name || master.login}
+                    style={{
+                      width: 64,
+                      height: 64,
+                      borderRadius: 12,
+                      objectFit: "cover",
+                      marginBottom: 8,
+                    }}
+                  />
+                ) : null}
+                <strong>{master.full_name || master.login}</strong> ·{" "}
+                {master.city || "—"}
+                <p className="muted">
+                  ID: {master.user_id} · role: {master.role} · status:{" "}
+                  {master.status}
+                </p>
+                <p className="muted">
+                  {master.description || "Описание не заполнено"}
+                </p>
                 <div className="adminActions">
-                  <a className="btn btnGhost" href="/profile">Открыть профиль в ЛК</a>
-                  {master.status === "approved" ? <a className="btn btnGhost" href={`/masters/${master.user_id}`}>Открыть публичную карточку</a> : <span className="muted">Публичная карточка недоступна</span>}
+                  <a className="btn btnGhost" href="/profile">
+                    Открыть профиль в ЛК
+                  </a>
+                  {master.status === "approved" ? (
+                    <a
+                      className="btn btnGhost"
+                      href={`/masters/${master.user_id}`}
+                    >
+                      Открыть публичную карточку
+                    </a>
+                  ) : (
+                    <span className="muted">Публичная карточка недоступна</span>
+                  )}
                 </div>
               </div>
               <div className="adminActions">
-                <button className="btn btnPrimary" onClick={async () => { try { await approveUser(master.user_id); await loadMasters(); setOk("Пользователь одобрен"); } catch (e) { setFail(e); } }}>Одобрить</button>
-                <button className="btn btnGhost" onClick={() => openRejectModal("user", master.user_id)}>Отклонить</button>
+                <button
+                  className="btn btnPrimary"
+                  onClick={async () => {
+                    try {
+                      await approveUser(master.user_id);
+                      await loadMasters();
+                      setOk("Пользователь одобрен");
+                    } catch (e) {
+                      setFail(e);
+                    }
+                  }}
+                >
+                  Одобрить
+                </button>
+                <button
+                  className="btn btnGhost"
+                  onClick={() => openRejectModal("user", master.user_id)}
+                >
+                  Отклонить
+                </button>
               </div>
             </div>
           ))}
-          {masters.length === 0 ? <p className="muted">Список пуст. Выберите статус и нажмите «Загрузить».</p> : null}
+          {masters.length === 0 ? (
+            <p className="muted">
+              Список пуст. Выберите статус и нажмите «Загрузить».
+            </p>
+          ) : null}
         </div>
       </article>
 
@@ -343,12 +545,20 @@ export default function AdminPage() {
         <div className="adminSectionHeader">
           <h2 className="h3">Модерация объявлений</h2>
           <div className="adminControls">
-            <select className="select" value={adsStatus} onChange={(e) => setAdsStatus(e.target.value as ModerationStatus)}>
+            <select
+              className="select"
+              value={adsStatus}
+              onChange={(e) => setAdsStatus(e.target.value as ModerationStatus)}
+            >
               {statusOptions.map((status) => (
-                <option key={status} value={status}>{status}</option>
+                <option key={status} value={status}>
+                  {status}
+                </option>
               ))}
             </select>
-            <button className="btn btnSecondary" onClick={loadAds}>Загрузить</button>
+            <button className="btn btnSecondary" onClick={loadAds}>
+              Загрузить
+            </button>
           </div>
         </div>
 
@@ -357,26 +567,86 @@ export default function AdminPage() {
             <div key={ad.id} className="adminItem">
               <div>
                 <strong>{ad.title}</strong> · {ad.city || "—"}
-                <p className="muted">ID: {ad.id} · type: {ad.type} · status: {ad.status} · login: {ad.login || "—"}</p>
-                {ad.image_url ? <img src={ad.image_url} alt={ad.title} style={{ width: 90, height: 70, objectFit: "cover", borderRadius: 8 }} /> : null}
+                <p className="muted">
+                  ID: {ad.id} · type: {ad.type} · status: {ad.status} · login:{" "}
+                  {ad.login || "—"}
+                </p>
+                {ad.image_url ? (
+                  <img
+                    src={ad.image_url}
+                    alt={ad.title}
+                    style={{
+                      width: 90,
+                      height: 70,
+                      objectFit: "cover",
+                      borderRadius: 8,
+                    }}
+                  />
+                ) : null}
               </div>
               <div className="adminActions">
-                <button className="btn btnSecondary" onClick={() => startEditAd(ad)}>Редактировать</button>
-                <button className="btn btnPrimary" onClick={async () => { try { await approveAd(ad.id); await loadAds(); setOk("Объявление одобрено"); } catch (e) { setFail(e); } }}>Одобрить</button>
-                <button className="btn btnGhost" onClick={() => openRejectModal("ad", ad.id)}>Отклонить</button>
+                <button
+                  className="btn btnSecondary"
+                  onClick={() => startEditAd(ad)}
+                >
+                  Редактировать
+                </button>
+                <button
+                  className="btn btnPrimary"
+                  onClick={async () => {
+                    try {
+                      await approveAd(ad.id);
+                      await loadAds();
+                      setOk("Объявление одобрено");
+                    } catch (e) {
+                      setFail(e);
+                    }
+                  }}
+                >
+                  Одобрить
+                </button>
+                <button
+                  className="btn btnGhost"
+                  onClick={() => openRejectModal("ad", ad.id)}
+                >
+                  Отклонить
+                </button>
               </div>
             </div>
           ))}
-          {ads.length === 0 ? <p className="muted">Список пуст. Выберите статус и нажмите «Загрузить».</p> : null}
+          {ads.length === 0 ? (
+            <p className="muted">
+              Список пуст. Выберите статус и нажмите «Загрузить».
+            </p>
+          ) : null}
         </div>
 
         {editAdId ? (
           <div className="adminItem">
             <h3>Редактирование объявления #{editAdId}</h3>
-            <input className="input" value={editAdTitle} onChange={(e) => setEditAdTitle(e.target.value)} placeholder="Заголовок" />
-            <textarea className="textarea" value={editAdDescription} onChange={(e) => setEditAdDescription(e.target.value)} placeholder="Описание" />
-            <input className="input" value={editAdCity} onChange={(e) => setEditAdCity(e.target.value)} placeholder="Город" />
-            <select className="select" value={editAdStatus} onChange={(e) => setEditAdStatus(e.target.value as AdStatus)}>
+            <input
+              className="input"
+              value={editAdTitle}
+              onChange={(e) => setEditAdTitle(e.target.value)}
+              placeholder="Заголовок"
+            />
+            <textarea
+              className="textarea"
+              value={editAdDescription}
+              onChange={(e) => setEditAdDescription(e.target.value)}
+              placeholder="Описание"
+            />
+            <input
+              className="input"
+              value={editAdCity}
+              onChange={(e) => setEditAdCity(e.target.value)}
+              placeholder="Город"
+            />
+            <select
+              className="select"
+              value={editAdStatus}
+              onChange={(e) => setEditAdStatus(e.target.value as AdStatus)}
+            >
               <option value="pending">pending</option>
               <option value="approved">approved</option>
               <option value="rejected">rejected</option>
@@ -395,24 +665,40 @@ export default function AdminPage() {
               onFilesChange={setEditAdImages}
             />
             <div className="adminActions">
-              <button className="btn btnPrimary" onClick={saveEditedAd}>Сохранить</button>
-              <button className="btn btnGhost" onClick={() => setEditAdId(null)}>Отмена</button>
+              <button className="btn btnPrimary" onClick={saveEditedAd}>
+                Сохранить
+              </button>
+              <button
+                className="btn btnGhost"
+                onClick={() => setEditAdId(null)}
+              >
+                Отмена
+              </button>
             </div>
           </div>
         ) : null}
       </article>
 
-
       <article className="card adminCard adminSection">
         <div className="adminSectionHeader">
           <h2 className="h3">Отзывы</h2>
           <div className="adminControls">
-            <select className="select" value={reviewStatus} onChange={(e) => setReviewStatus(e.target.value as ModerationStatus)}>
+            <select
+              className="select"
+              value={reviewStatus}
+              onChange={(e) =>
+                setReviewStatus(e.target.value as ModerationStatus)
+              }
+            >
               {statusOptions.map((status) => (
-                <option key={status} value={status}>{status}</option>
+                <option key={status} value={status}>
+                  {status}
+                </option>
               ))}
             </select>
-            <button className="btn btnSecondary" onClick={loadReviews}>Загрузить</button>
+            <button className="btn btnSecondary" onClick={loadReviews}>
+              Загрузить
+            </button>
           </div>
         </div>
 
@@ -421,46 +707,301 @@ export default function AdminPage() {
             <div key={review.id} className="adminItem">
               <div>
                 <strong>Отзыв #{review.id}</strong> · master #{review.master_id}
-                <p className="muted">Статус: {review.status} · Телефон: {review.phone}</p>
+                <p className="muted">
+                  Статус: {review.status} · Телефон: {review.phone}
+                </p>
                 <p>{review.text}</p>
-                {review.photo_url ? <a href={review.photo_url} target="_blank" rel="noreferrer"><img src={review.photo_url} alt={`review-${review.id}`} style={{ width: 90, height: 70, objectFit: "cover", borderRadius: 8 }} /></a> : null}
-                <p className="muted">Согласие ПД: {review.is_personal_data_consent ? "да" : "нет"} · {review.personal_data_consent_at ? new Date(review.personal_data_consent_at).toLocaleString("ru-RU") : "—"}</p>
+                {review.photo_url ? (
+                  <a href={review.photo_url} target="_blank" rel="noreferrer">
+                    <img
+                      src={review.photo_url}
+                      alt={`review-${review.id}`}
+                      style={{
+                        width: 90,
+                        height: 70,
+                        objectFit: "cover",
+                        borderRadius: 8,
+                      }}
+                    />
+                  </a>
+                ) : null}
+                <p className="muted">
+                  Согласие ПД: {review.is_personal_data_consent ? "да" : "нет"}{" "}
+                  ·{" "}
+                  {review.personal_data_consent_at
+                    ? new Date(review.personal_data_consent_at).toLocaleString(
+                        "ru-RU",
+                      )
+                    : "—"}
+                </p>
               </div>
               <div className="adminActions">
                 <input
                   className="input"
                   placeholder="Комментарий модератора"
                   value={reviewCommentById[review.id] || ""}
-                  onChange={(e) => setReviewCommentById((prev) => ({ ...prev, [review.id]: e.target.value }))}
+                  onChange={(e) =>
+                    setReviewCommentById((prev) => ({
+                      ...prev,
+                      [review.id]: e.target.value,
+                    }))
+                  }
                 />
                 <div className="reviewActionRow">
-                  <button className="btn btnPrimary" onClick={async () => { try { await moderateReview(review.id, { status: "approved", admin_comment: reviewCommentById[review.id] || "" }); await loadReviews(); setOk("Отзыв одобрен"); } catch (e) { setFail(e); } }}>Одобрить</button>
-                  <button className="btn btnGhost" onClick={async () => { try { await moderateReview(review.id, { status: "rejected", admin_comment: reviewCommentById[review.id] || "" }); await loadReviews(); setOk("Отзыв отклонен"); } catch (e) { setFail(e); } }}>Отклонить</button>
-                  <button className="btn btnGhost" onClick={async () => { try { await deleteReview(review.id); await loadReviews(); setOk("Отзыв удален"); } catch (e) { setFail(e); } }}>Удалить</button>
+                  <button
+                    className="btn btnPrimary"
+                    onClick={async () => {
+                      try {
+                        await moderateReview(review.id, {
+                          status: "approved",
+                          admin_comment: reviewCommentById[review.id] || "",
+                        });
+                        await loadReviews();
+                        setOk("Отзыв одобрен");
+                      } catch (e) {
+                        setFail(e);
+                      }
+                    }}
+                  >
+                    Одобрить
+                  </button>
+                  <button
+                    className="btn btnGhost"
+                    onClick={async () => {
+                      try {
+                        await moderateReview(review.id, {
+                          status: "rejected",
+                          admin_comment: reviewCommentById[review.id] || "",
+                        });
+                        await loadReviews();
+                        setOk("Отзыв отклонен");
+                      } catch (e) {
+                        setFail(e);
+                      }
+                    }}
+                  >
+                    Отклонить
+                  </button>
+                  <button
+                    className="btn btnGhost"
+                    onClick={async () => {
+                      try {
+                        await deleteReview(review.id);
+                        await loadReviews();
+                        setOk("Отзыв удален");
+                      } catch (e) {
+                        setFail(e);
+                      }
+                    }}
+                  >
+                    Удалить
+                  </button>
                 </div>
               </div>
             </div>
           ))}
-          {reviews.length === 0 ? <p className="muted">Список пуст. Выберите статус и нажмите «Загрузить».</p> : null}
+          {reviews.length === 0 ? (
+            <p className="muted">
+              Список пуст. Выберите статус и нажмите «Загрузить».
+            </p>
+          ) : null}
         </div>
       </article>
 
+      <article className="card adminCard adminSection">
+        <div className="adminSectionHeader">
+          <h2 className="h3">Обратная связь</h2>
+          <div className="adminControls">
+            <select
+              className="select"
+              value={supportStatus}
+              onChange={(e) =>
+                setSupportStatus(e.target.value as SupportStatus)
+              }
+            >
+              {supportStatusOptions.map((status) => (
+                <option key={status} value={status}>
+                  {supportStatusLabel[status]}
+                </option>
+              ))}
+            </select>
+            <button className="btn btnSecondary" onClick={loadSupportRequests}>
+              Загрузить
+            </button>
+          </div>
+        </div>
+
+        {selectedSupportRequest ? (
+          <div className="adminItem supportAdminDetail">
+            <div className="supportAdminDetailHeader">
+              <div>
+                <p className="supportAdminMeta">
+                  Открыта заявка #{selectedSupportRequest.id}
+                </p>
+                <strong>{selectedSupportRequest.name}</strong>
+                <p className="muted">
+                  {selectedSupportRequest.contact} ·{" "}
+                  {formatSupportDate(selectedSupportRequest.created_at)}
+                </p>
+              </div>
+              <span
+                className={`statusBadge status-${selectedSupportRequest.status}`}
+              >
+                {supportStatusLabel[selectedSupportRequest.status]}
+              </span>
+            </div>
+            <p className="supportAdminFullText">
+              {selectedSupportRequest.message}
+            </p>
+            <div className="adminActions">
+              <select
+                className="select"
+                value={selectedSupportRequest.status}
+                onChange={(e) =>
+                  changeSupportStatus(
+                    selectedSupportRequest.id,
+                    e.target.value as SupportStatus,
+                  )
+                }
+              >
+                {supportStatusOptions.map((status) => (
+                  <option key={status} value={status}>
+                    {supportStatusLabel[status]}
+                  </option>
+                ))}
+              </select>
+              <div className="actionRow">
+                <button
+                  className="btn btnGhost"
+                  onClick={() => setSelectedSupportRequest(null)}
+                >
+                  Скрыть
+                </button>
+                <button
+                  className="btn btnGhost"
+                  onClick={() =>
+                    removeSupportRequest(selectedSupportRequest.id)
+                  }
+                >
+                  Удалить
+                </button>
+              </div>
+            </div>
+          </div>
+        ) : null}
+
+        <div className="adminList supportAdminList">
+          {supportRequests.map((request) => (
+            <div
+              key={request.id}
+              className={`adminItem supportAdminItem ${request.status === "new" ? "supportAdminItemNew" : ""}`}
+            >
+              <div className="supportAdminCardTop">
+                <div>
+                  <strong>{request.name}</strong>
+                  <p className="supportAdminMeta">
+                    #{request.id} · {request.contact}
+                  </p>
+                </div>
+                <span className={`statusBadge status-${request.status}`}>
+                  {supportStatusLabel[request.status]}
+                </span>
+              </div>
+
+              <p className="supportAdminMessage">
+                {getSupportPreview(request.message)}
+              </p>
+
+              <details className="supportAdminDetails">
+                <summary>Показать сообщение полностью</summary>
+                <p className="supportAdminFullText">{request.message}</p>
+              </details>
+
+              <p className="muted">
+                Создано: {formatSupportDate(request.created_at)}
+              </p>
+
+              <div className="supportAdminControls">
+                <button
+                  className="btn btnSecondary"
+                  onClick={() => openSupportRequest(request.id)}
+                >
+                  Открыть
+                </button>
+                <select
+                  className="select"
+                  value={request.status}
+                  onChange={(e) =>
+                    changeSupportStatus(
+                      request.id,
+                      e.target.value as SupportStatus,
+                    )
+                  }
+                >
+                  {supportStatusOptions.map((status) => (
+                    <option key={status} value={status}>
+                      {supportStatusLabel[status]}
+                    </option>
+                  ))}
+                </select>
+                <button
+                  className="btn btnGhost"
+                  onClick={() => removeSupportRequest(request.id)}
+                >
+                  Удалить
+                </button>
+              </div>
+            </div>
+          ))}
+          {supportRequests.length === 0 ? (
+            <p className="muted">
+              Список пуст. Выберите статус и нажмите «Загрузить».
+            </p>
+          ) : null}
+        </div>
+      </article>
 
       <article className="card adminCard adminSection">
         <div className="adminSectionHeader">
           <h2 className="h3">Каталог оборудования</h2>
-          <button className="btn btnSecondary" onClick={loadEquipment}>Загрузить</button>
+          <button className="btn btnSecondary" onClick={loadEquipment}>
+            Загрузить
+          </button>
         </div>
 
         <form className="authForm" onSubmit={onCreateEquipment}>
-          <label className="label" htmlFor="equipment-name">Название</label>
-          <input id="equipment-name" className="input" value={equipmentName} onChange={(e) => setEquipmentName(e.target.value)} placeholder="Например, Лазер диодный" />
+          <label className="label" htmlFor="equipment-name">
+            Название
+          </label>
+          <input
+            id="equipment-name"
+            className="input"
+            value={equipmentName}
+            onChange={(e) => setEquipmentName(e.target.value)}
+            placeholder="Например, Лазер диодный"
+          />
 
-          <label className="label" htmlFor="equipment-description">Описание</label>
-          <textarea id="equipment-description" className="textarea" value={equipmentDescription} onChange={(e) => setEquipmentDescription(e.target.value)} required />
+          <label className="label" htmlFor="equipment-description">
+            Описание
+          </label>
+          <textarea
+            id="equipment-description"
+            className="textarea"
+            value={equipmentDescription}
+            onChange={(e) => setEquipmentDescription(e.target.value)}
+            required
+          />
 
-          <label className="label" htmlFor="equipment-contact">Контакт для связи</label>
-          <input id="equipment-contact" className="input" value={equipmentContact} onChange={(e) => setEquipmentContact(e.target.value)} required />
+          <label className="label" htmlFor="equipment-contact">
+            Контакт для связи
+          </label>
+          <input
+            id="equipment-contact"
+            className="input"
+            value={equipmentContact}
+            onChange={(e) => setEquipmentContact(e.target.value)}
+            required
+          />
 
           <FileUploadField
             id="equipment-image"
@@ -472,7 +1013,9 @@ export default function AdminPage() {
             onFilesChange={(files) => setEquipmentImage(files[0] ?? null)}
           />
 
-          <button className="btn btnPrimary" type="submit">Добавить в каталог</button>
+          <button className="btn btnPrimary" type="submit">
+            Добавить в каталог
+          </button>
         </form>
 
         <div className="adminList">
@@ -482,34 +1025,80 @@ export default function AdminPage() {
                 <strong>{item.name || "Оборудование"}</strong>
                 <p className="muted">{item.description}</p>
                 <p className="muted">Контакт: {item.contact || "—"}</p>
-                {item.image_url ? <img src={item.image_url} alt={item.name || "equipment"} style={{ width: 90, height: 70, objectFit: "cover", borderRadius: 8 }} /> : null}
+                {item.image_url ? (
+                  <img
+                    src={item.image_url}
+                    alt={item.name || "equipment"}
+                    style={{
+                      width: 90,
+                      height: 70,
+                      objectFit: "cover",
+                      borderRadius: 8,
+                    }}
+                  />
+                ) : null}
               </div>
               <div className="adminActions">
-                <button className="btn btnGhost" onClick={async () => { try { await deleteEquipment(item.id); await loadEquipment(); setOk("Позиция удалена"); } catch (e) { setFail(e); } }}>Удалить</button>
+                <button
+                  className="btn btnGhost"
+                  onClick={async () => {
+                    try {
+                      await deleteEquipment(item.id);
+                      await loadEquipment();
+                      setOk("Позиция удалена");
+                    } catch (e) {
+                      setFail(e);
+                    }
+                  }}
+                >
+                  Удалить
+                </button>
               </div>
             </div>
           ))}
-          {equipment.length === 0 ? <p className="muted">Список пуст. Добавьте первую позицию.</p> : null}
+          {equipment.length === 0 ? (
+            <p className="muted">Список пуст. Добавьте первую позицию.</p>
+          ) : null}
         </div>
       </article>
-
 
       <article className="card adminCard adminSection">
         <div className="adminSectionHeader">
           <h2 className="h3">Проверка оплат</h2>
-          <button className="btn btnSecondary" onClick={loadPayments}>Загрузить</button>
+          <button className="btn btnSecondary" onClick={loadPayments}>
+            Загрузить
+          </button>
         </div>
         <div className="adminList">
           {payments.map((p) => (
             <div key={p.id} className="adminItem">
               <div>
                 <strong>{p.advertisement_title}</strong>
-                <p className="muted">Пользователь: {p.login} · Тариф: {p.tariff_name} · Сумма: {p.amount} ₽</p>
+                <p className="muted">
+                  Пользователь: {p.login} · Тариф: {p.tariff_name} · Сумма:{" "}
+                  {p.amount} ₽
+                </p>
                 <p className="muted">Комментарий: {p.comment || "—"}</p>
               </div>
               <div className="adminActions">
-                <button className="btn btnPrimary" onClick={async () => { await confirmPayment(p.id); await loadPayments(); }}>Подтвердить оплату</button>
-                <button className="btn btnGhost" onClick={async () => { await rejectPayment(p.id); await loadPayments(); }}>Отклонить оплату</button>
+                <button
+                  className="btn btnPrimary"
+                  onClick={async () => {
+                    await confirmPayment(p.id);
+                    await loadPayments();
+                  }}
+                >
+                  Подтвердить оплату
+                </button>
+                <button
+                  className="btn btnGhost"
+                  onClick={async () => {
+                    await rejectPayment(p.id);
+                    await loadPayments();
+                  }}
+                >
+                  Отклонить оплату
+                </button>
               </div>
             </div>
           ))}
@@ -518,9 +1107,21 @@ export default function AdminPage() {
       </article>
 
       {rejectModalOpen ? (
-        <div className="modalOverlay" role="dialog" aria-modal="true" aria-label="Отклонить объявление">
+        <div
+          className="modalOverlay"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Отклонить объявление"
+        >
           <div className="modalCard">
-            <button type="button" className="modalClose" onClick={closeRejectModal} aria-label="Закрыть">✕</button>
+            <button
+              type="button"
+              className="modalClose"
+              onClick={closeRejectModal}
+              aria-label="Закрыть"
+            >
+              ✕
+            </button>
             <h3>Отклонить объявление</h3>
             <p className="muted">Укажите причину отклонения</p>
             <textarea
@@ -532,8 +1133,20 @@ export default function AdminPage() {
             />
             {rejectError ? <p className="adminError">{rejectError}</p> : null}
             <div className="actionRow">
-              <button type="button" className="btn btnGhost" onClick={closeRejectModal}>Отмена</button>
-              <button type="button" className="btn btnPrimary" onClick={submitReject}>Отклонить</button>
+              <button
+                type="button"
+                className="btn btnGhost"
+                onClick={closeRejectModal}
+              >
+                Отмена
+              </button>
+              <button
+                type="button"
+                className="btn btnPrimary"
+                onClick={submitReject}
+              >
+                Отклонить
+              </button>
             </div>
           </div>
         </div>

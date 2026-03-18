@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { RoleCategoryPicker } from "./role-category-picker";
 import { BrandLogo } from "@/components/BrandLogo";
 import { HotOffersCarousel } from "@/components/ads/HotOffersCarousel";
+import { SupportForm } from "@/components/SupportForm";
 
 type CategoryItem = {
   id: number;
@@ -22,7 +23,9 @@ export const metadata: Metadata = {
 };
 
 async function getCategoryGroups() {
-  const res = await fetch("http://localhost:8080/category-groups", { cache: "no-store" });
+  const res = await fetch("http://localhost:8080/category-groups", {
+    cache: "no-store",
+  });
   if (!res.ok) return [];
   return (await res.json()) as CategoryGroup[];
 }
@@ -39,6 +42,7 @@ export default async function HomePage() {
         <RoleCategoryPicker groups={groups} />
       </div>
       <HotOffersCarousel />
+      <SupportForm />
     </section>
   );
 }

@@ -16,8 +16,6 @@ export type AdminMaster = {
   description?: string;
 };
 
-
-
 export type AdminEquipmentItem = {
   id: number;
   name: string;
@@ -26,6 +24,15 @@ export type AdminEquipmentItem = {
   image_url?: string;
 };
 
+export type AdminSupportRequest = {
+  id: number;
+  name: string;
+  contact: string;
+  message: string;
+  created_at: string;
+  updated_at: string;
+  status: "new" | "in_progress" | "closed";
+};
 
 export type AdminReview = {
   id: number;
@@ -62,7 +69,9 @@ const API_URL = "/api";
 
 async function parseResponse<T>(response: Response): Promise<T> {
   if (!response.ok) {
-    const payload = (await response.json().catch(() => ({ error: "Request failed" }))) as ApiError;
+    const payload = (await response
+      .json()
+      .catch(() => ({ error: "Request failed" }))) as ApiError;
     throw new Error(payload.error || `Request failed: ${response.status}`);
   }
 
@@ -71,11 +80,16 @@ async function parseResponse<T>(response: Response): Promise<T> {
 }
 
 export async function adminPing() {
-  const response = await fetch(`${API_URL}/admin/ping`, { credentials: "include", cache: "no-store" });
+  const response = await fetch(`${API_URL}/admin/ping`, {
+    credentials: "include",
+    cache: "no-store",
+  });
   return parseResponse<{ message: string }>(response);
 }
 
-export async function getAdminMasters(status: "pending" | "approved" | "rejected") {
+export async function getAdminMasters(
+  status: "pending" | "approved" | "rejected",
+) {
   const response = await fetch(`${API_URL}/admin/masters?status=${status}`, {
     credentials: "include",
     cache: "no-store",
@@ -83,7 +97,13 @@ export async function getAdminMasters(status: "pending" | "approved" | "rejected
   return parseResponse<AdminMaster[]>(response);
 }
 
-export async function moderateUser(userId: number, payload: { role: "admin" | "moderator" | "user"; status: "pending" | "approved" | "rejected" }) {
+export async function moderateUser(
+  userId: number,
+  payload: {
+    role: "admin" | "moderator" | "user";
+    status: "pending" | "approved" | "rejected";
+  },
+) {
   const response = await fetch(`${API_URL}/admin/users/${userId}/moderate`, {
     method: "PATCH",
     credentials: "include",
@@ -111,7 +131,14 @@ export async function rejectUser(userId: number, reason: string) {
   return parseResponse(response);
 }
 
-export async function createCategory(payload: { name: string; slug: string; group_name: string; group_title: string; audience: "master" | "client" | "both"; is_business?: boolean }) {
+export async function createCategory(payload: {
+  name: string;
+  slug: string;
+  group_name: string;
+  group_title: string;
+  audience: "master" | "client" | "both";
+  is_business?: boolean;
+}) {
   const response = await fetch(`${API_URL}/admin/categories`, {
     method: "POST",
     credentials: "include",
@@ -147,26 +174,31 @@ export async function rejectAd(adId: number, reason: string) {
   return parseResponse(response);
 }
 
-export async function updateAdByAdmin(adId: number, payload: {
-  type?: "service" | "cabinet" | "salon";
-  title?: string;
-  description?: string;
-  city?: string;
-  category_id?: number;
-  status?: "pending" | "approved" | "rejected" | "active" | "expired";
-  append_images?: boolean;
-  image_urls?: string[];
-  images?: File[];
-}) {
+export async function updateAdByAdmin(
+  adId: number,
+  payload: {
+    type?: "service" | "cabinet" | "salon";
+    title?: string;
+    description?: string;
+    city?: string;
+    category_id?: number;
+    status?: "pending" | "approved" | "rejected" | "active" | "expired";
+    append_images?: boolean;
+    image_urls?: string[];
+    images?: File[];
+  },
+) {
   const formData = new FormData();
   if (payload.type) formData.append("type", payload.type);
   if (payload.title) formData.append("title", payload.title);
   if (payload.description) formData.append("description", payload.description);
   if (payload.city) formData.append("city", payload.city);
-  if (payload.category_id) formData.append("category_id", String(payload.category_id));
+  if (payload.category_id)
+    formData.append("category_id", String(payload.category_id));
   if (payload.status) formData.append("status", payload.status);
   formData.append("append_images", String(payload.append_images ?? true));
-  for (const url of payload.image_urls || []) formData.append("image_urls[]", url);
+  for (const url of payload.image_urls || [])
+    formData.append("image_urls[]", url);
   for (const file of payload.images || []) formData.append("images[]", file);
 
   const response = await fetch(`${API_URL}/admin/ads/${adId}`, {
@@ -186,21 +218,26 @@ export async function getAdminPendingPayments() {
 }
 
 export async function confirmPayment(paymentId: number) {
-  const response = await fetch(`${API_URL}/admin/payments/${paymentId}/confirm`, {
-    method: "POST",
-    credentials: "include",
-  });
+  const response = await fetch(
+    `${API_URL}/admin/payments/${paymentId}/confirm`,
+    {
+      method: "POST",
+      credentials: "include",
+    },
+  );
   return parseResponse<{ message: string }>(response);
 }
 
 export async function rejectPayment(paymentId: number) {
-  const response = await fetch(`${API_URL}/admin/payments/${paymentId}/reject`, {
-    method: "POST",
-    credentials: "include",
-  });
+  const response = await fetch(
+    `${API_URL}/admin/payments/${paymentId}/reject`,
+    {
+      method: "POST",
+      credentials: "include",
+    },
+  );
   return parseResponse<{ message: string }>(response);
 }
-
 
 export async function getAdminEquipment() {
   const response = await fetch(`${API_URL}/admin/equipment`, {
@@ -238,19 +275,30 @@ export async function deleteEquipment(id: number) {
   return parseResponse<void>(response);
 }
 
-
-export async function getAdminReviews(params?: { status?: "pending" | "approved" | "rejected"; master_id?: number }) {
+export async function getAdminReviews(params?: {
+  status?: "pending" | "approved" | "rejected";
+  master_id?: number;
+}) {
   const q = new URLSearchParams();
   if (params?.status) q.set("status", params.status);
   if (params?.master_id) q.set("master_id", String(params.master_id));
-  const response = await fetch(`${API_URL}/admin/reviews${q.toString() ? `?${q.toString()}` : ""}`, {
-    credentials: "include",
-    cache: "no-store",
-  });
+  const response = await fetch(
+    `${API_URL}/admin/reviews${q.toString() ? `?${q.toString()}` : ""}`,
+    {
+      credentials: "include",
+      cache: "no-store",
+    },
+  );
   return parseResponse<AdminReview[]>(response);
 }
 
-export async function moderateReview(id: number, payload: { status: "pending" | "approved" | "rejected"; admin_comment?: string }) {
+export async function moderateReview(
+  id: number,
+  payload: {
+    status: "pending" | "approved" | "rejected";
+    admin_comment?: string;
+  },
+) {
   const response = await fetch(`${API_URL}/admin/reviews/${id}/moderate`, {
     method: "PATCH",
     credentials: "include",
@@ -262,6 +310,50 @@ export async function moderateReview(id: number, payload: { status: "pending" | 
 
 export async function deleteReview(id: number) {
   const response = await fetch(`${API_URL}/admin/reviews/${id}`, {
+    method: "DELETE",
+    credentials: "include",
+  });
+  return parseResponse<void>(response);
+}
+
+export async function getAdminSupportRequests(
+  status?: "new" | "in_progress" | "closed",
+) {
+  const q = new URLSearchParams();
+  if (status) q.set("status", status);
+  const response = await fetch(
+    `${API_URL}/admin/support-requests${q.toString() ? `?${q.toString()}` : ""}`,
+    {
+      credentials: "include",
+      cache: "no-store",
+    },
+  );
+  return parseResponse<AdminSupportRequest[]>(response);
+}
+
+export async function getAdminSupportRequest(id: number) {
+  const response = await fetch(`${API_URL}/admin/support-requests/${id}`, {
+    credentials: "include",
+    cache: "no-store",
+  });
+  return parseResponse<AdminSupportRequest>(response);
+}
+
+export async function updateAdminSupportRequestStatus(
+  id: number,
+  status: "new" | "in_progress" | "closed",
+) {
+  const response = await fetch(`${API_URL}/admin/support-requests/${id}`, {
+    method: "PATCH",
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ status }),
+  });
+  return parseResponse<{ message: string }>(response);
+}
+
+export async function deleteAdminSupportRequest(id: number) {
+  const response = await fetch(`${API_URL}/admin/support-requests/${id}`, {
     method: "DELETE",
     credentials: "include",
   });
