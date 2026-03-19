@@ -44,10 +44,11 @@ func ListMasters(c *gin.Context) {
 	var rows []MasterModerationItem
 	err := database.DB.Table("master_profiles mp").
 		Select(`u.id as user_id, u.login, u.role, mp.status, mp.rejection_reason,
-			mp.id as profile_id, mp.full_name, mp.city, mp.category_id,
+			mp.id as profile_id, mp.full_name, ct.name as city, mp.category_id,
 			mp.avatar_url, mp.description, c.name as category_name, c.slug as category_slug`).
 		Joins("JOIN users u ON u.id = mp.user_id").
 		Joins("LEFT JOIN categories c ON c.id = mp.category_id").
+		Joins("LEFT JOIN cities ct ON ct.id = mp.city_id").
 		Where("mp.status = ?", status).
 		Order("mp.id desc").
 		Scan(&rows).Error

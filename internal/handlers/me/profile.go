@@ -4,6 +4,7 @@ import (
 	"beauty-sarafan/internal/database"
 	"beauty-sarafan/internal/models"
 	"beauty-sarafan/internal/storage"
+	"errors"
 	"net/http"
 	"strconv"
 	"strings"
@@ -15,11 +16,12 @@ import (
 
 type ProfileUpsertRequest struct {
 	CategoryID  uint
+	CityID      uint
+	CityName    string
 	FullName    string
 	Description string
 	Services    string
 	Phone       string
-	City        string
 	SocialLinks string
 }
 
@@ -32,6 +34,7 @@ type ProfileResponse struct {
 	ID              uint                `json:"id"`
 	UserID          uint                `json:"user_id"`
 	CategoryID      uint                `json:"category_id"`
+	CityID          uint                `json:"city_id"`
 	FullName        string              `json:"full_name"`
 	Description     string              `json:"description"`
 	Services        string              `json:"services"`
@@ -51,7 +54,7 @@ func validateProfileUpsert(req *ProfileUpsertRequest) string {
 	req.Description = strings.TrimSpace(req.Description)
 	req.Services = strings.TrimSpace(req.Services)
 	req.Phone = strings.TrimSpace(req.Phone)
-	req.City = strings.TrimSpace(req.City)
+	req.CityName = strings.TrimSpace(req.CityName)
 	req.SocialLinks = strings.TrimSpace(req.SocialLinks)
 
 	if req.CategoryID == 0 {
@@ -60,7 +63,7 @@ func validateProfileUpsert(req *ProfileUpsertRequest) string {
 	if req.FullName == "" {
 		return "full_name is required"
 	}
-	if req.City == "" {
+	if req.CityID == 0 && req.CityName == "" {
 		return "city is required"
 	}
 	if req.Description == "" {
@@ -88,6 +91,7 @@ func loadProfileResponse(profile models.MasterProfile) (ProfileResponse, error) 
 		ID:              profile.ID,
 		UserID:          profile.UserID,
 		CategoryID:      profile.CategoryID,
+		CityID:          profile.CityID,
 		FullName:        profile.FullName,
 		Description:     profile.Description,
 		Services:        profile.Services,
@@ -137,13 +141,15 @@ func PutProfile(c *gin.Context) {
 	}
 
 	categoryID, _ := strconv.ParseUint(c.PostForm("category_id"), 10, 64)
+	cityID, _ := strconv.ParseUint(c.PostForm("city_id"), 10, 64)
 	req := ProfileUpsertRequest{
 		CategoryID:  uint(categoryID),
+		CityID:      uint(cityID),
+		CityName:    c.PostForm("city_name"),
 		FullName:    c.PostForm("full_name"),
 		Description: c.PostForm("description"),
 		Services:    c.PostForm("services"),
 		Phone:       c.PostForm("phone"),
-		City:        c.PostForm("city"),
 		SocialLinks: c.PostForm("social_links"),
 	}
 
@@ -164,6 +170,16 @@ func PutProfile(c *gin.Context) {
 		profile = models.MasterProfile{UserID: userID}
 	}
 
+	city, err := database.EnsureCity(database.DB, req.CityID, req.CityName)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "city is required"})
+			return
+		}
+		c.JSON(http.StatusBadRequest, gin.H{"error": "failed to resolve city"})
+		return
+	}
+
 	if avatarHeader != nil {
 		avatarURL, err := uploader.UploadImage(avatarHeader, "masters/avatar")
 		if err != nil {
@@ -174,11 +190,12 @@ func PutProfile(c *gin.Context) {
 	}
 
 	profile.CategoryID = req.CategoryID
+	profile.CityID = city.ID
 	profile.FullName = req.FullName
 	profile.Description = req.Description
 	profile.Services = req.Services
 	profile.Phone = req.Phone
-	profile.City = req.City
+	profile.City = city.Name
 	profile.SocialLinks = req.SocialLinks
 	profile.Status = models.StatusPending
 	profile.RejectionReason = nil

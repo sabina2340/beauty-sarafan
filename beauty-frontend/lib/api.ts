@@ -17,13 +17,13 @@ async function parseResponse<T>(response: Response): Promise<T> {
 }
 
 export async function getMasters(params?: {
-  category?: string;
-  city?: string;
+  category_id?: string;
+  city_id?: string;
   q?: string;
 }): Promise<MasterCard[]> {
   const query = new URLSearchParams();
-  if (params?.category) query.set("category", params.category);
-  if (params?.city) query.set("city", params.city);
+  if (params?.category_id) query.set("category_id", params.category_id);
+  if (params?.city_id) query.set("city_id", params.city_id);
   if (params?.q) query.set("q", params.q);
 
   const url = `${buildApiUrl("/masters")}${query.toString() ? `?${query.toString()}` : ""}`;

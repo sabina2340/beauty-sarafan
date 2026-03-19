@@ -6,6 +6,7 @@ type MasterProfile struct {
 	ID              uint      `gorm:"primaryKey"`
 	UserID          uint      `gorm:"uniqueIndex;not null"`
 	CategoryID      uint      `gorm:"not null"`
+	CityID          uint      `gorm:"index"`
 	FullName        string    `gorm:"type:varchar(255)"`
 	Description     string    `gorm:"type:text"`
 	Services        string    `gorm:"type:text"`

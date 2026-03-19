@@ -8,6 +8,7 @@ export type MyMasterProfile = {
   id: number;
   user_id: number;
   category_id: number;
+  city_id: number;
   full_name: string;
   description: string;
   services: string;
@@ -24,13 +25,17 @@ const API_URL = "/api";
 
 async function parseJson<T>(response: Response): Promise<T> {
   if (!response.ok) {
-    const payload = await response.json().catch(() => ({ error: "Request failed" }));
+    const payload = await response
+      .json()
+      .catch(() => ({ error: "Request failed" }));
     throw new Error(payload.error || `Request failed: ${response.status}`);
   }
   return (await response.json()) as T;
 }
 
-export async function authMe(options?: { silent?: boolean }): Promise<AuthMe | null> {
+export async function authMe(options?: {
+  silent?: boolean;
+}): Promise<AuthMe | null> {
   const response = await fetch(`${API_URL}/auth/me`, {
     credentials: "include",
     cache: "no-store",
@@ -68,10 +73,15 @@ export async function register(payload: { login: string; password: string }) {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
   });
-  return parseJson<{ message: string; user_id: number; status: string }>(response);
+  return parseJson<{ message: string; user_id: number; status: string }>(
+    response,
+  );
 }
 
-export async function changePassword(payload: { new_password: string; confirm_new_password: string }) {
+export async function changePassword(payload: {
+  new_password: string;
+  confirm_new_password: string;
+}) {
   const response = await fetch(`${API_URL}/me/password`, {
     method: "PUT",
     credentials: "include",
@@ -108,11 +118,12 @@ export async function getPersonalDataConsent() {
 
 export async function upsertMyProfile(payload: {
   category_id: number;
+  city_id?: number;
+  city_name?: string;
   full_name: string;
   description: string;
   services: string;
   phone: string;
-  city: string;
   social_links: string;
   avatar?: File | null;
   works?: File[];
@@ -123,7 +134,8 @@ export async function upsertMyProfile(payload: {
   formData.append("description", payload.description);
   formData.append("services", payload.services);
   formData.append("phone", payload.phone);
-  formData.append("city", payload.city);
+  if (payload.city_id) formData.append("city_id", String(payload.city_id));
+  if (payload.city_name) formData.append("city_name", payload.city_name);
   formData.append("social_links", payload.social_links);
 
   if (payload.avatar) {
