@@ -38,6 +38,7 @@ func InitDB() *gorm.DB {
 		&models.User{},
 		&models.PersonalDataConsent{},
 		&models.Category{},
+		&models.City{},
 		&models.MasterProfile{},
 		&models.Advertisement{},
 		&models.MasterWorkImage{},
@@ -53,6 +54,7 @@ func InitDB() *gorm.DB {
 		log.Fatal("AutoMigrate error:", err)
 	}
 
+	backfillMasterProfileCities(db)
 	seedAdmin(db)
 	seedCategories(db)
 	seedTariffs(db)
@@ -90,8 +92,28 @@ func seedAdmin(db *gorm.DB) {
 		password = "admin123"
 	}
 
-	var existing models.User
-	if err := db.Where("login = ?", login).First(&existing).Error; err == nil {
+	var byLogin models.User
+	if err := db.Where("login = ?", login).First(&byLogin).Error; err == nil {
+		updates := map[string]interface{}{
+			"role":     models.RoleAdmin,
+			"status":   models.StatusApproved,
+			"verified": true,
+		}
+		if err := db.Model(&byLogin).Updates(updates).Error; err != nil {
+			log.Printf("admin seed update existing login error: %v", err)
+		}
+		return
+	}
+
+	var existingAdmin models.User
+	if err := db.Where("role = ?", models.RoleAdmin).First(&existingAdmin).Error; err == nil {
+		updates := map[string]interface{}{
+			"status":   models.StatusApproved,
+			"verified": true,
+		}
+		if err := db.Model(&existingAdmin).Updates(updates).Error; err != nil {
+			log.Printf("admin seed normalize existing admin error: %v", err)
+		}
 		return
 	}
 

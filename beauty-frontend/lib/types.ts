@@ -7,6 +7,7 @@ export type MasterCard = {
   services: string;
   short_services?: string;
   phone: string;
+  city_id: number;
   city: string;
   social_links: string;
   avatar_url?: string;
@@ -39,7 +40,6 @@ export type ApiError = {
   error: string;
 };
 
-
 export type EquipmentItem = {
   id: number;
   name: string;
@@ -48,7 +48,6 @@ export type EquipmentItem = {
   image_url?: string;
   price?: number | null;
 };
-
 
 export type ReviewItem = {
   id: number;

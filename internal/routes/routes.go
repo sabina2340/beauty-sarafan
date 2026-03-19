@@ -5,6 +5,7 @@ import (
 	"beauty-sarafan/internal/handlers/ads"
 	"beauty-sarafan/internal/handlers/auth"
 	"beauty-sarafan/internal/handlers/categories"
+	"beauty-sarafan/internal/handlers/cities"
 	"beauty-sarafan/internal/handlers/equipment"
 	"beauty-sarafan/internal/handlers/me"
 	publicHandlers "beauty-sarafan/internal/handlers/public"
@@ -51,6 +52,7 @@ func RegisterRoutes(r *gin.Engine, db *gorm.DB) {
 	}
 
 	r.GET("/categories", categories.List)
+	r.GET("/cities", cities.List)
 	r.GET("/category-groups", categories.ListGroups)
 	r.GET("/masters", publicHandlers.ListMasters)
 	r.GET("/masters/:id", publicHandlers.GetMaster)

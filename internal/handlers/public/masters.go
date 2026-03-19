@@ -20,6 +20,7 @@ type MasterCard struct {
 	Services         string    `json:"services"`
 	ShortServices    string    `json:"short_services"`
 	Phone            string    `json:"phone"`
+	CityID           uint      `json:"city_id"`
 	City             string    `json:"city"`
 	SocialLinks      string    `json:"social_links"`
 	AvatarURL        string    `json:"avatar_url"`
@@ -51,17 +52,19 @@ func ListMasters(c *gin.Context) {
 	if slug == "" {
 		slug = c.Query("category")
 	}
+	cityID := c.Query("city_id")
 	city := c.Query("city")
 	q := c.Query("q")
 	service := c.Query("service")
 
 	query := database.DB.Table("users u").
 		Select(`u.id as user_id, u.login,
-			mp.full_name, mp.description, mp.services, mp.phone, mp.city, mp.social_links, mp.avatar_url,
+			mp.full_name, mp.description, mp.services, mp.phone, mp.city_id, ct.name as city, mp.social_links, mp.avatar_url,
 			mp.category_id, c.name as category_name, c.slug as category_slug,
 			(u.status = 'approved') as verified, mp.created_at, mp.updated_at`).
 		Joins("JOIN master_profiles mp ON mp.user_id = u.id").
 		Joins("LEFT JOIN categories c ON c.id = mp.category_id").
+		Joins("LEFT JOIN cities ct ON ct.id = mp.city_id").
 		Where("u.role = ? AND mp.status = ?", models.RoleUser, models.StatusApproved)
 
 	if categoryID != "" {
@@ -70,8 +73,10 @@ func ListMasters(c *gin.Context) {
 	if slug != "" {
 		query = query.Where("c.slug = ?", slug)
 	}
-	if city != "" {
-		query = query.Where("LOWER(mp.city) LIKE LOWER(?)", "%"+city+"%")
+	if cityID != "" {
+		query = query.Where("mp.city_id = ?", cityID)
+	} else if city != "" {
+		query = query.Where("LOWER(ct.name) LIKE LOWER(?)", "%"+city+"%")
 	}
 	if q != "" {
 		query = query.Where("LOWER(mp.full_name) LIKE LOWER(?)", "%"+q+"%")
@@ -103,11 +108,12 @@ func GetMaster(c *gin.Context) {
 	var master MasterCard
 	err = database.DB.Table("users u").
 		Select(`u.id as user_id, u.login,
-			mp.full_name, mp.description, mp.services, mp.phone, mp.city, mp.social_links, mp.avatar_url,
+			mp.full_name, mp.description, mp.services, mp.phone, mp.city_id, ct.name as city, mp.social_links, mp.avatar_url,
 			mp.category_id, c.name as category_name, c.slug as category_slug,
 			(u.status = 'approved') as verified, mp.created_at, mp.updated_at`).
 		Joins("JOIN master_profiles mp ON mp.user_id = u.id").
 		Joins("LEFT JOIN categories c ON c.id = mp.category_id").
+		Joins("LEFT JOIN cities ct ON ct.id = mp.city_id").
 		Where("u.id = ? AND u.role = ? AND mp.status = ?", id, models.RoleUser, models.StatusApproved).
 		Scan(&master).Error
 	if err != nil || master.UserID == 0 {

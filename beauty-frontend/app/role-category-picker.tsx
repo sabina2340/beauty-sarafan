@@ -34,13 +34,35 @@ export function RoleCategoryPicker({ groups }: Props) {
     <div className="homeBlocks">
       <div className="homeIntro">
         <h1 className="h1">Приветствуем!</h1>
-        <p className="lead">Сарафан - это удобная, современная онлайн - платформа, которая объединяет самые топовые услуги для всей семьи и их клиентов по всей России.</p>
+        <p className="lead">
+          Сарафан - это удобная, современная онлайн - платформа, которая
+          объединяет самые топовые услуги для всей семьи и их клиентов по всей
+          России.
+        </p>
       </div>
 
       <div className="roleButtons">
-        <button type="button" className={`btn ${mode === "offer" ? "btnSecondary" : "btnGhost"}`} onClick={() => setMode("offer")}>✅ Предлагаю услугу</button>
-        <button type="button" className={`btn ${mode === "seek" ? "btnSecondary" : "btnGhost"}`} onClick={() => setMode("seek")}>✅ Ищу услугу</button>
-        <button type="button" className={`btn ${mode === "growth" ? "btnSecondary" : "btnGhost"}`} onClick={() => setMode("growth")}>✅ Для роста и бизнеса</button>
+        <button
+          type="button"
+          className={`btn ${mode === "offer" ? "btnSecondary" : "btnGhost"}`}
+          onClick={() => setMode("offer")}
+        >
+          ✅ Предлагаю услугу
+        </button>
+        <button
+          type="button"
+          className={`btn ${mode === "seek" ? "btnSecondary" : "btnGhost"}`}
+          onClick={() => setMode("seek")}
+        >
+          ✅ Ищу услугу
+        </button>
+        <button
+          type="button"
+          className={`btn ${mode === "growth" ? "btnSecondary" : "btnGhost"}`}
+          onClick={() => setMode("growth")}
+        >
+          ✅ Для роста и бизнеса
+        </button>
       </div>
 
       <div className="manualGroups">
@@ -48,20 +70,35 @@ export function RoleCategoryPicker({ groups }: Props) {
           <section key={group.group_name} className="groupCard">
             <h3>{group.group_title}</h3>
             <div className="servicesChips">
-              {group.items.map((item) => (
+              {group.items.map((item) =>
                 mode === "offer" ? (
-                  <button key={item.id} type="button" className="serviceChip serviceChipBtn" onClick={() => onOfferClick(item.id)}>{item.name}</button>
+                  <button
+                    key={item.id}
+                    type="button"
+                    className="serviceChip serviceChipBtn"
+                    onClick={() => onOfferClick(item.id)}
+                  >
+                    {item.name}
+                  </button>
                 ) : (
-                  <Link key={item.id} href={`/masters?slug=${encodeURIComponent(item.slug)}`} className="serviceChip">{item.name}</Link>
-                )
-              ))}
+                  <Link
+                    key={item.id}
+                    href={`/masters?category_id=${item.id}`}
+                    className="serviceChip"
+                  >
+                    {item.name}
+                  </Link>
+                ),
+              )}
             </div>
           </section>
         ))}
       </div>
 
       <div className="ctaRow">
-        <Link href="/masters" className="btn btnPrimary">Перейти в каталог</Link>
+        <Link href="/masters" className="btn btnPrimary">
+          Перейти в каталог
+        </Link>
       </div>
     </div>
   );
