@@ -43,6 +43,14 @@ export type MyAdItem = Advertisement & {
   last_payment_id?: number;
 };
 
+export type SelectTariffResponse = {
+  payment_id: number;
+  redirect: string;
+  payment_link?: string;
+  operation_id?: string;
+  provider_status?: string;
+};
+
 export async function createAd(payload: {
   type: string;
   title: string;
@@ -100,7 +108,7 @@ export async function selectTariff(adId: number, tariffId: number) {
       body: JSON.stringify({ tariff_id: tariffId }),
     },
   );
-  return parseResponse<{ payment_id: number; redirect: string }>(response);
+  return parseResponse<SelectTariffResponse>(response);
 }
 
 export async function getAdPayment(adId: number) {
@@ -118,7 +126,19 @@ export async function markPaid(paymentId: number, comment: string) {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ comment }),
   });
-  return parseResponse<{ message: string }>(response);
+  return parseResponse<any>(response);
+}
+
+export async function checkPaymentStatus(paymentId: number) {
+  const response = await fetch(
+    buildApiUrl(`/payments/${paymentId}/check-status`),
+    {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+    },
+  );
+  return parseResponse<any>(response);
 }
 
 export async function getHotOffers() {

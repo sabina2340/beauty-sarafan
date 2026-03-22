@@ -1,45 +1,88 @@
 "use client";
 
-import { getAdPayment, markPaid } from "@/lib/ads-api";
+import { checkPaymentStatus, getAdPayment, markPaid } from "@/lib/ads-api";
 import { useEffect, useMemo, useState } from "react";
 
 type PaymentPayload = {
   advertisement?: { id?: number; ID?: number; title?: string; Title?: string };
-  payment?: { id?: number; ID?: number; amount?: number; Amount?: number };
+  payment?: {
+    id?: number;
+    ID?: number;
+    amount?: number;
+    Amount?: number;
+    provider_payment_link?: string;
+    ProviderPaymentLink?: string;
+    provider_operation_id?: string;
+    ProviderOperationID?: string;
+    provider_status?: string;
+    ProviderStatus?: string;
+    status?: string;
+    Status?: string;
+  };
   tariff?: { Name?: string; name?: string };
-  qr_url?: string;
+  payment_link?: string;
+  operation_id?: string;
+  current_status?: string;
+  is_paid?: boolean;
 };
 
 export default function PaymentPage({ params }: { params: { id: string } }) {
   const [data, setData] = useState<PaymentPayload | null>(null);
-  const [comment, setComment] = useState("");
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+  const [loadingAction, setLoadingAction] = useState<"check" | "mark" | null>(null);
+
+  const loadPayment = async () => {
+    setError("");
+    const payload = await getAdPayment(Number(params.id));
+    setData(payload);
+    return payload;
+  };
 
   useEffect(() => {
-    setError("");
-    getAdPayment(Number(params.id))
-      .then((payload) => setData(payload))
-      .catch((e) => setError(e.message));
+    loadPayment().catch((e) => setError(e.message));
   }, [params.id]);
 
   const paymentId = useMemo(() => Number(data?.payment?.id ?? data?.payment?.ID ?? 0), [data]);
   const adTitle = data?.advertisement?.title ?? data?.advertisement?.Title ?? "Объявление";
   const tariffName = data?.tariff?.Name ?? data?.tariff?.name ?? "Тариф";
   const paymentAmount = data?.payment?.amount ?? data?.payment?.Amount ?? 0;
+  const paymentLink =
+    data?.payment_link ??
+    data?.payment?.provider_payment_link ??
+    data?.payment?.ProviderPaymentLink ??
+    "";
+  const operationId =
+    data?.operation_id ??
+    data?.payment?.provider_operation_id ??
+    data?.payment?.ProviderOperationID ??
+    "";
+  const currentStatus =
+    data?.current_status ??
+    data?.payment?.provider_status ??
+    data?.payment?.ProviderStatus ??
+    data?.payment?.status ??
+    data?.payment?.Status ??
+    "pending";
+  const isPaid = Boolean(data?.is_paid);
 
-  const onMarkPaid = async () => {
+  const runCheck = async (mode: "check" | "mark") => {
     if (!paymentId) {
       setError("Не найден номер платежа. Обновите страницу.");
       return;
     }
 
     try {
-      const res = await markPaid(paymentId, comment.trim());
+      setLoadingAction(mode);
       setError("");
-      setMessage(res.message);
+      setMessage("");
+      const res = mode === "mark" ? await markPaid(paymentId, "") : await checkPaymentStatus(paymentId);
+      setMessage(res.message || "Статус оплаты обновлен");
+      await loadPayment();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Ошибка");
+    } finally {
+      setLoadingAction(null);
     }
   };
 
@@ -61,17 +104,39 @@ export default function PaymentPage({ params }: { params: { id: string } }) {
       <p>
         Тариф: {tariffName} · {paymentAmount} ₽
       </p>
-      <img src={data.qr_url} alt="QR для оплаты" width={240} height={240} />
-      <p className="muted">Отсканируйте QR и оплатите. После оплаты нажмите кнопку ниже.</p>
-      <textarea
-        className="textarea"
-        placeholder="Комментарий к платежу"
-        value={comment}
-        onChange={(e) => setComment(e.target.value)}
-      />
-      <button className="btn btnPrimary" onClick={onMarkPaid}>
-        Я оплатил
-      </button>
+      <p className="muted">Статус: {isPaid ? "confirmed" : currentStatus}</p>
+      {operationId ? <p className="muted">Operation ID: {operationId}</p> : null}
+      {paymentLink ? (
+        <a
+          className="btn btnPrimary"
+          href={paymentLink}
+          target="_blank"
+          rel="noreferrer"
+        >
+          Перейти к оплате
+        </a>
+      ) : (
+        <p className="adminError">Ссылка на оплату пока недоступна.</p>
+      )}
+      <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+        <button
+          className="btn btnPrimary"
+          onClick={() => runCheck("check")}
+          disabled={loadingAction !== null}
+        >
+          {loadingAction === "check" ? "Проверяем..." : "Проверить оплату"}
+        </button>
+        <button
+          className="btn"
+          onClick={() => runCheck("mark")}
+          disabled={loadingAction !== null}
+        >
+          {loadingAction === "mark" ? "Проверяем..." : "Я оплатил"}
+        </button>
+      </div>
+      <p className="muted">
+        После оплаты вернитесь на эту страницу и нажмите кнопку проверки статуса.
+      </p>
       {message ? <p className="adminOk">{message}</p> : null}
       {error ? <p className="adminError">{error}</p> : null}
     </section>

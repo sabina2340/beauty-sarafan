@@ -87,6 +87,7 @@ func RegisterRoutes(r *gin.Engine, db *gorm.DB) {
 	paymentsProtected.Use(middleware.AuthMiddleware(), middleware.RequireRole(models.RoleUser), middleware.EnsureApproved())
 	{
 		paymentsProtected.POST("/:id/mark-paid", ads.MarkPaymentPaid)
+		paymentsProtected.POST("/:id/check-status", ads.CheckPaymentStatus)
 	}
 
 	adminGroup := r.Group("/admin")
