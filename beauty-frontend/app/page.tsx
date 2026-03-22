@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { RoleCategoryPicker } from "./role-category-picker";
 import { BrandLogo } from "@/components/BrandLogo";
 import { HotOffersCarousel } from "@/components/ads/HotOffersCarousel";
+import { SarafanFindsInstallHint } from "@/components/ads/SarafanFindsInstallHint";
 import { SupportForm } from "@/components/SupportForm";
 import { buildApiUrl } from "@/lib/api-base";
 
@@ -43,6 +44,7 @@ export default async function HomePage() {
       <div id="categories" className="homeContent card">
         <RoleCategoryPicker groups={groups} />
       </div>
+      <SarafanFindsInstallHint />
       <HotOffersCarousel />
       <SupportForm />
     </section>

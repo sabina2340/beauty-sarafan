@@ -92,7 +92,7 @@ export default function MyAdsPage() {
         <h1 className="h1">Мои объявления</h1>
         <div className="noticeBox noticeDanger">
           <strong>Раздел объявлений временно недоступен</strong>
-          <p>{error || "Чтобы работать с объявлениями, профиль мастера должен быть одобрен."}</p>
+          <p>{error || "Чтобы работать с объявлениями, профиль мастера должен быть заполнен и сохранён."}</p>
         </div>
         <p>
           <Link className="btn btnPrimary" href="/profile">
@@ -108,8 +108,8 @@ export default function MyAdsPage() {
       <h1 className="h1">Мои объявления</h1>
       {profile && profile.status !== "approved" ? (
         <p className="muted">
-          Статус профиля: {profile.status === "pending" ? "на модерации" : "требует исправлений"}. Если объявления уже доступны,
-          значит профиль в системе одобрен и статус скоро синхронизируется.
+          Статус профиля: {profile.status === "pending" ? "активируется" : "требует исправлений"}. Если объявления уже доступны,
+          значит профиль в системе уже активен и статус скоро синхронизируется.
         </p>
       ) : null}
       <p>

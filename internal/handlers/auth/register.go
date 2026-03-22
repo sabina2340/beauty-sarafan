@@ -16,7 +16,7 @@ type RegisterRequest struct {
 
 // Register godoc
 // @Summary Регистрация пользователя
-// @Description Создаёт пользователя с ролью user и статусом pending
+// @Description Создаёт пользователя с ролью user и сразу активным статусом профиля
 // @Tags auth
 // @Accept json
 // @Produce json
@@ -48,8 +48,8 @@ func Register(c *gin.Context) {
 		Login:        req.Login,
 		PasswordHash: string(hashedPassword),
 		Role:         models.RoleUser,
-		Status:       models.StatusPending,
-		Verified:     false,
+		Status:       models.StatusApproved,
+		Verified:     true,
 	}
 
 	if err := database.DB.Create(&user).Error; err != nil {
@@ -58,7 +58,7 @@ func Register(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusCreated, gin.H{
-		"message": "registration successful, profile is pending moderation",
+		"message": "registration successful, profile is active",
 		"user_id": user.ID,
 		"status":  user.Status,
 	})

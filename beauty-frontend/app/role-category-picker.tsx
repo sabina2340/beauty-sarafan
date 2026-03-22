@@ -38,7 +38,7 @@ export function RoleCategoryPicker({ groups }: Props) {
       </div>
 
       <div className="roleButtons">
-        <button type="button" className={`btn ${mode === "offer" ? "btnSecondary" : "btnGhost"}`} onClick={() => setMode("offer")}>✅ Предлагаю услугу</button>
+        <button type="button" className={`btn ${mode === "offer" ? "btnSecondary" : "btnGhost"}`} onClick={() => setMode("offer")}>✅ Разместить бесплатно услугу</button>
         <button type="button" className={`btn ${mode === "seek" ? "btnSecondary" : "btnGhost"}`} onClick={() => setMode("seek")}>✅ Ищу услугу</button>
         <button type="button" className={`btn ${mode === "growth" ? "btnSecondary" : "btnGhost"}`} onClick={() => setMode("growth")}>✅ Для роста и бизнеса</button>
       </div>

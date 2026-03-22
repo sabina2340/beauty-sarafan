@@ -93,7 +93,7 @@ export default function NewAdPage() {
             </div>
           </>
         ) : null}
-        <button className="btn btnPrimary" type="submit">Отправить на модерацию</button>
+        <button className="btn btnPrimary" type="submit">Опубликовать объявление</button>
       </form>
       {message ? <p className="adminOk">{message}</p> : null}
       {error ? <p className="adminError">{error}</p> : null}

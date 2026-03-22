@@ -180,7 +180,7 @@ func PutProfile(c *gin.Context) {
 	profile.Phone = req.Phone
 	profile.City = req.City
 	profile.SocialLinks = req.SocialLinks
-	profile.Status = models.StatusPending
+	profile.Status = models.StatusApproved
 	profile.RejectionReason = nil
 
 	if profile.ID == 0 {
@@ -218,8 +218,8 @@ func PutProfile(c *gin.Context) {
 	}
 
 	if err := database.DB.Model(&models.User{}).Where("id = ?", userID).Updates(map[string]interface{}{
-		"status":           models.StatusPending,
-		"verified":         false,
+		"status":           models.StatusApproved,
+		"verified":         true,
 		"rejection_reason": nil,
 	}).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to update user moderation status"})

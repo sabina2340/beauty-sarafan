@@ -23,7 +23,7 @@ export function readableApiError(errorText: string) {
   if (errorText.includes("services")) return "Укажите ваши услуги.";
   if (errorText.includes("phone or social_links")) return "Укажите телефон или ссылку на мессенджер.";
   if (errorText.includes("сначала заполните профиль")) return "Сначала заполните и отправьте профиль мастера.";
-  if (errorText.includes("модерации или отклонён")) return "Профиль пока не одобрен. После одобрения раздел объявлений откроется.";
+  if (errorText.includes("модерации или отклонён")) return "Профиль отклонён или ещё не синхронизирован. Сохраните профиль повторно, чтобы активировать его.";
   return errorText;
 }
 

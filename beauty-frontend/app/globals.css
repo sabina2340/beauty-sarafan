@@ -731,6 +731,54 @@ h4 {
   padding-bottom: 4px;
 }
 
+.sarafanFindsHeader {
+  grid-column: 1 / -1;
+  display: grid;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.sarafanFindsSubtitle {
+  margin: 4px 0 0;
+}
+
+.sarafanFindsActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.sarafanPopupCard {
+  gap: 12px;
+}
+
+.sarafanPopupEyebrow {
+  margin: 0;
+  color: #7c6a00;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.sarafanPopupTitle {
+  margin: 0;
+  padding-right: 28px;
+}
+
+.sarafanPopupActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.sarafanInstallHint {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
 .adCard {
   min-width: 250px;
   max-width: 280px;
@@ -884,6 +932,12 @@ h4 {
 
   .supportAdminCardTop,
   .supportAdminDetailHeader {
+    flex-direction: column;
+  }
+
+  .sarafanInstallHint,
+  .sarafanFindsActions,
+  .sarafanPopupActions {
     flex-direction: column;
   }
 }

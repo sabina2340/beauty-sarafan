@@ -29,15 +29,16 @@ export function BottomNav() {
 
   const items = useMemo<NavItem[]>(() => {
     const base: NavItem[] = [
+      { href: "/login", label: "Вход", icon: "🔐" },
       { href: "/#categories", label: "Категории", icon: "🧭" },
       { href: "/", label: "Главная", icon: "🏠" },
       { href: "/masters", label: "Мастера", icon: "🔎" },
-      { href: "/hot-offers", label: "Горячие", icon: "🔥" },
+      { href: "/hot-offers", label: "Находки", icon: "🔥" },
       { href: "/equipment", label: "Оборуд.", icon: "🧰" },
     ];
 
     if (!me) {
-      return [...base, { href: "/login", label: "Вход", icon: "🔐" }];
+      return base;
     }
 
     return [

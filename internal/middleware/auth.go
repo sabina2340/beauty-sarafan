@@ -76,9 +76,17 @@ func EnsureApproved() gin.HandlerFunc {
 			return
 		}
 
-		if profile.Status != models.StatusApproved {
+		if profile.Status == models.StatusRejected {
 			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "профиль на модерации или отклонён"})
 			return
+		}
+
+		if profile.Status == models.StatusPending {
+			_ = database.DB.Model(&models.MasterProfile{}).Where("id = ?", profile.ID).Update("status", models.StatusApproved).Error
+			_ = database.DB.Model(&models.User{}).Where("id = ?", userID).Updates(map[string]interface{}{
+				"status":   models.StatusApproved,
+				"verified": true,
+			}).Error
 		}
 
 		c.Next()

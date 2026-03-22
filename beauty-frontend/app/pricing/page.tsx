@@ -26,7 +26,7 @@ function normalizeTariff(tariff: Tariff): NormalizedTariff {
 function groupTitle(name: string) {
     const lower = name.toLowerCase();
 
-    if (lower.includes("акции")) return "Акции и спецпредложения";
+    if (lower.includes("акции")) return "Сарафанные находки";
     if (lower.includes("всплыва")) return "Всплывающие окна";
 
     return "Другие тарифы";
@@ -60,7 +60,7 @@ export default async function PricingPage() {
                 <h1 className="h1">Тарифы и стоимость услуг</h1>
 
                 <p className="muted" style={{ marginBottom: 16 }}>
-                    Актуальная стоимость услуг размещения и продвижения объявлений указана в рублях.
+                    Актуальная стоимость услуг размещения и продвижения объявлений, включая раздел «Сарафанные находки», указана в рублях.
                     Оплата производится через доступные на сайте способы оплаты.
                 </p>
 
@@ -79,6 +79,11 @@ export default async function PricingPage() {
                         <h2 className="h2" style={{ marginBottom: 12 }}>
                             {title}
                         </h2>
+                        {title === "Сарафанные находки" ? (
+                            <p className="muted" style={{ marginBottom: 12 }}>
+                                Проверенные акции
+                            </p>
+                        ) : null}
 
                         <div
                             style={{

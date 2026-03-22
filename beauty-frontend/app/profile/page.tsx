@@ -142,7 +142,7 @@ export default function ProfilePage() {
       setAvatar(null);
       setWorks([]);
       setEditMode(false);
-      setSuccess("Профиль сохранён и отправлен на модерацию");
+      setSuccess("Профиль сохранён и сразу доступен для публикации");
     } catch (err) {
       setError(readableApiError(err instanceof Error ? err.message : "Ошибка сохранения профиля"));
     }
@@ -290,7 +290,7 @@ export default function ProfilePage() {
             </span>
           </label>
 
-          <button type="submit" className="btn btnPrimary">Сохранить и отправить на проверку</button>
+          <button type="submit" className="btn btnPrimary">Сохранить профиль</button>
           {profile ? <button type="button" className="btn btnGhost" onClick={() => setEditMode(false)}>Отменить редактирование</button> : null}
         </form>
       )}
