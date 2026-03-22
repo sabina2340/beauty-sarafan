@@ -2,7 +2,9 @@ import { getActiveAds } from "@/lib/ads-api";
 import { AdCard } from "@/components/ads/AdCard";
 
 export async function HotOffersCarousel() {
-  const ads = await getActiveAds(8).catch(() => []);
+  const adsRaw = await getActiveAds(8).catch(() => []);
+  const ads = Array.isArray(adsRaw) ? adsRaw : [];
+
   if (!ads.length) return null;
 
   return (
