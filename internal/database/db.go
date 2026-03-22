@@ -53,6 +53,10 @@ func InitDB() *gorm.DB {
 		log.Fatal("AutoMigrate error:", err)
 	}
 
+	if err := db.Exec(`CREATE UNIQUE INDEX IF NOT EXISTS idx_payments_operation_id_not_empty ON payments (operation_id) WHERE operation_id IS NOT NULL AND operation_id <> ''`).Error; err != nil {
+		log.Fatal("payments operation_id index error:", err)
+	}
+
 	seedAdmin(db)
 	seedCategories(db)
 	seedTariffs(db)

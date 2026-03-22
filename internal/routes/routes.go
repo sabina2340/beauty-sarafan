@@ -86,8 +86,11 @@ func RegisterRoutes(r *gin.Engine, db *gorm.DB) {
 	paymentsProtected := r.Group("/payments")
 	paymentsProtected.Use(middleware.AuthMiddleware(), middleware.RequireRole(models.RoleUser), middleware.EnsureApproved())
 	{
+		paymentsProtected.GET("/:id/status", ads.PaymentStatus)
 		paymentsProtected.POST("/:id/mark-paid", ads.MarkPaymentPaid)
 	}
+
+	r.POST("/webhooks/tochka/acquiring", ads.TochkaAcquiringWebhook)
 
 	adminGroup := r.Group("/admin")
 	adminGroup.Use(middleware.AuthMiddleware(), middleware.RequireAnyRole(models.RoleAdmin, models.RoleModerator))

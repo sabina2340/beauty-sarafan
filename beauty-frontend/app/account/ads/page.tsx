@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { getMyAds, getTariffs, markPaid, type MyAdItem, type Tariff } from "@/lib/ads-api";
+import { getMyAds, getTariffs, type MyAdItem, type Tariff } from "@/lib/ads-api";
 import { authMe, getMyProfile, type MyMasterProfile } from "@/lib/auth-api";
 import { adTypeLabel, moderationStatusLabel, readableApiError } from "@/lib/labels";
 
@@ -143,14 +143,6 @@ export default function MyAdsPage() {
               <Link className="btn btnSecondary" href={`/account/ads/${ad.id}/payment`}>
                 Перейти к оплате
               </Link>
-            ) : null}
-            {ad.last_payment_id ? (
-              <button
-                className="btn btnGhost"
-                onClick={() => markPaid(ad.last_payment_id!, "Оплатил, проверьте пожалуйста").then(loadAds)}
-              >
-                Я оплатил
-              </button>
             ) : null}
           </div>
               </>

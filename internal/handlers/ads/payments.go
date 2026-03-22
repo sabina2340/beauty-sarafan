@@ -3,8 +3,10 @@ package ads
 import (
 	"beauty-sarafan/internal/database"
 	"beauty-sarafan/internal/models"
+	"beauty-sarafan/internal/payments"
 	"beauty-sarafan/internal/storage"
 	"fmt"
+	"io"
 	"net/http"
 	"strconv"
 	"strings"
@@ -25,10 +27,6 @@ type selectTariffRequest struct {
 
 type markPaidRequest struct {
 	Comment string `json:"comment"`
-}
-
-func buildPaymentQR(paymentID uint, amount int) string {
-	return fmt.Sprintf("https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=PAYMENT%%3A%d%%7CAMOUNT%%3A%d", paymentID, amount)
 }
 
 func parseAdPayload(c *gin.Context) (createAdRequest, error) {
@@ -179,30 +177,23 @@ func SelectTariff(c *gin.Context) {
 		return
 	}
 
-	var payment models.Payment
-	err = database.DB.Transaction(func(tx *gorm.DB) error {
-		ad.TariffID = &tariff.ID
-		if err := tx.Save(&ad).Error; err != nil {
-			return err
-		}
-		payment = models.Payment{
-			AdvertisementID: ad.ID,
-			TariffID:        tariff.ID,
-			Amount:          tariff.Price,
-			Method:          "QR",
-			Status:          "pending",
-		}
-		if err := tx.Create(&payment).Error; err != nil {
-			return err
-		}
-		return nil
+	service := payments.DefaultService()
+	result, err := service.CreatePaymentForAd(c.Request.Context(), payments.CreatePaymentParams{
+		Advertisement: ad,
+		Tariff:        tariff,
 	})
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create payment"})
+		c.JSON(http.StatusBadGateway, gin.H{"error": err.Error()})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"payment_id": payment.ID, "redirect": fmt.Sprintf("/account/ads/%d/payment", ad.ID)})
+	c.JSON(http.StatusOK, gin.H{
+		"payment_id":   result.Payment.ID,
+		"operation_id": result.Payment.OperationID,
+		"payment_url":  result.Payment.PaymentLink,
+		"status":       result.Payment.Status,
+		"redirect":     fmt.Sprintf("/account/ads/%d/payment?payment_id=%d", ad.ID, result.Payment.ID),
+	})
 }
 
 // GetPaymentByAd GET /advertisements/:id/payment
@@ -226,19 +217,16 @@ func GetPaymentByAd(c *gin.Context) {
 		return
 	}
 
+	payment = syncPaymentIfNeeded(c, payment)
+
 	var tariff models.Tariff
 	_ = database.DB.First(&tariff, payment.TariffID).Error
 
-	c.JSON(http.StatusOK, gin.H{
-		"advertisement": ad,
-		"payment":       payment,
-		"tariff":        tariff,
-		"qr_url":        buildPaymentQR(payment.ID, payment.Amount),
-	})
+	c.JSON(http.StatusOK, paymentPayload(ad, payment, tariff))
 }
 
-// MarkPaymentPaid POST /payments/:id/mark-paid
-func MarkPaymentPaid(c *gin.Context) {
+// PaymentStatus GET /payments/:id/status
+func PaymentStatus(c *gin.Context) {
 	userID := c.GetUint("user_id")
 	paymentID, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
@@ -246,29 +234,55 @@ func MarkPaymentPaid(c *gin.Context) {
 		return
 	}
 
-	var req markPaidRequest
-	_ = c.ShouldBindJSON(&req)
-
 	var payment models.Payment
 	if err := database.DB.First(&payment, paymentID).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "payment not found"})
 		return
 	}
+
 	var ad models.Advertisement
 	if err := database.DB.Where("id = ? AND user_id = ?", payment.AdvertisementID, userID).First(&ad).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "ad not found"})
 		return
 	}
 
-	now := time.Now()
-	payment.Comment = req.Comment
-	payment.MarkedPaidAt = &now
-	if err := database.DB.Save(&payment).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to update payment"})
+	payment = syncPaymentIfNeeded(c, payment)
+
+	var tariff models.Tariff
+	_ = database.DB.First(&tariff, payment.TariffID).Error
+
+	c.JSON(http.StatusOK, paymentPayload(ad, payment, tariff))
+}
+
+// TochkaAcquiringWebhook POST /webhooks/tochka/acquiring
+func TochkaAcquiringWebhook(c *gin.Context) {
+	rawBody, err := io.ReadAll(c.Request.Body)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "failed to read webhook body"})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "Платеж отправлен на ручную проверку", "payment": payment})
+	service := payments.DefaultService()
+	payment, payload, err := service.ApplyWebhook(c.Request.Context(), string(rawBody))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message":      "webhook processed",
+		"payment_id":   payment.ID,
+		"operation_id": payload.OperationID,
+		"status":       payment.Status,
+		"bank_status":  payment.BankStatus,
+	})
+}
+
+// MarkPaymentPaid POST /payments/:id/mark-paid
+func MarkPaymentPaid(c *gin.Context) {
+	var req markPaidRequest
+	_ = c.ShouldBindJSON(&req)
+	c.JSON(http.StatusGone, gin.H{"error": "manual payment confirmation is disabled; use Tochka payment link and status polling"})
 }
 
 // AdminPendingPayments GET /admin/payments/pending
@@ -281,7 +295,7 @@ func AdminPendingPayments(c *gin.Context) {
 		Joins("JOIN advertisements a ON a.id = p.advertisement_id").
 		Joins("JOIN users u ON u.id = a.user_id").
 		Joins("JOIN tariffs t ON t.id = p.tariff_id").
-		Where("p.status = ? AND p.marked_paid_at IS NOT NULL", "pending").
+		Where("p.status = ? AND p.marked_paid_at IS NOT NULL AND COALESCE(p.operation_id, '') = ''", "pending").
 		Order("p.id desc").
 		Find(&rows).Error
 	if err != nil {
@@ -306,48 +320,27 @@ func AdminConfirmPayment(c *gin.Context) {
 		c.JSON(http.StatusNotFound, gin.H{"error": "payment not found"})
 		return
 	}
+	if payment.OperationID != "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "tochka payments are confirmed automatically from bank status APPROVED"})
+		return
+	}
 	if payment.Status != "pending" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "payment is already processed"})
 		return
 	}
 
-	var ad models.Advertisement
-	if err := database.DB.First(&ad, payment.AdvertisementID).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "ad not found"})
-		return
-	}
-	var tariff models.Tariff
-	if err := database.DB.First(&tariff, payment.TariffID).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "tariff not found"})
-		return
-	}
-
 	now := time.Now()
-	expires := now.AddDate(0, 0, tariff.DurationDays)
-
-	err = database.DB.Transaction(func(tx *gorm.DB) error {
-		payment.Status = "confirmed"
-		payment.PaidAt = &now
-		if err := tx.Save(&payment).Error; err != nil {
-			return err
-		}
-
-		ad.Status = models.AdStatusActive
-		ad.ActivatedAt = &now
-		ad.ExpiresAt = &expires
-		if err := tx.Save(&ad).Error; err != nil {
-			return err
-		}
-
-		return tx.Create(&models.ModerationLog{
-			EntityType: "payment",
-			EntityID:   payment.ID,
-			AdminID:    adminID,
-			Action:     "confirmed",
-		}).Error
-	})
-	if err != nil {
+	payment.Status = models.PaymentStatusPaid
+	payment.BankStatus = "APPROVED"
+	payment.PaidAt = &now
+	if err := database.DB.Save(&payment).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to confirm payment"})
+		return
+	}
+	_ = database.DB.Create(&models.ModerationLog{EntityType: "payment", EntityID: payment.ID, AdminID: adminID, Action: "confirmed"}).Error
+
+	if err := payments.ApplyBankOperation(database.DB, &payment, payments.TochkaPaymentOperation{Status: "APPROVED", OperationID: payment.OperationID}); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to activate ad"})
 		return
 	}
 
@@ -368,12 +361,17 @@ func AdminRejectPayment(c *gin.Context) {
 		c.JSON(http.StatusNotFound, gin.H{"error": "payment not found"})
 		return
 	}
+	if payment.OperationID != "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "tochka payments are rejected by bank status updates, not manual moderation"})
+		return
+	}
 	if payment.Status != "pending" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "payment is already processed"})
 		return
 	}
 
-	payment.Status = "rejected"
+	payment.Status = models.PaymentStatusFailed
+	payment.BankStatus = "REJECTED"
 	if err := database.DB.Save(&payment).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to reject payment"})
 		return
@@ -395,7 +393,7 @@ func HotOffers(c *gin.Context) {
 		Joins(`LEFT JOIN LATERAL (
 			SELECT pay.id, pay.paid_at, pay.tariff_id
 			FROM payments pay
-			WHERE pay.advertisement_id = a.id AND pay.status = 'confirmed'
+			WHERE pay.advertisement_id = a.id AND (pay.status = 'paid' OR pay.bank_status = 'APPROVED')
 			ORDER BY pay.paid_at DESC NULLS LAST, pay.id DESC
 			LIMIT 1
 		) p ON true`).
@@ -435,7 +433,7 @@ func ActiveAds(c *gin.Context) {
 		Joins(`LEFT JOIN LATERAL (
 			SELECT pay.id, pay.paid_at, pay.tariff_id
 			FROM payments pay
-			WHERE pay.advertisement_id = a.id AND pay.status = 'confirmed'
+			WHERE pay.advertisement_id = a.id AND (pay.status = 'paid' OR pay.bank_status = 'APPROVED')
 			ORDER BY pay.paid_at DESC NULLS LAST, pay.id DESC
 			LIMIT 1
 		) p ON true`).
@@ -456,4 +454,30 @@ func ActiveAds(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, rows)
+}
+
+func syncPaymentIfNeeded(c *gin.Context, payment models.Payment) models.Payment {
+	if payment.OperationID == "" {
+		return payment
+	}
+	if payment.BankStatus == "APPROVED" || payment.Status == models.PaymentStatusPaid || payment.Status == models.PaymentStatusExpired || payment.Status == models.PaymentStatusFailed || payment.Status == models.PaymentStatusRefunded {
+		return payment
+	}
+	service := payments.DefaultService()
+	if err := service.SyncPaymentStatus(c.Request.Context(), &payment); err != nil {
+		return payment
+	}
+	return payment
+}
+
+func paymentPayload(ad models.Advertisement, payment models.Payment, tariff models.Tariff) gin.H {
+	return gin.H{
+		"advertisement": ad,
+		"payment":       payment,
+		"tariff":        tariff,
+		"payment_url":   payment.PaymentLink,
+		"operation_id":  payment.OperationID,
+		"bank_status":   payment.BankStatus,
+		"status":        payment.Status,
+	}
 }

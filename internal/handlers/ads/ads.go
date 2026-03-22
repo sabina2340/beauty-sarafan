@@ -107,7 +107,8 @@ func ListMine(c *gin.Context) {
 		if err := database.DB.Where("advertisement_id = ?", ad.ID).Order("id desc").First(&p).Error; err == nil {
 			row["last_payment_id"] = p.ID
 			row["last_payment_status"] = p.Status
-			row["has_pending_payment"] = p.Status == "pending"
+			row["last_bank_status"] = p.BankStatus
+			row["has_pending_payment"] = p.Status == models.PaymentStatusCreated || p.Status == models.PaymentStatusProcessing
 		}
 
 		rows = append(rows, row)

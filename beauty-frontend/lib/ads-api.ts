@@ -41,6 +41,37 @@ export type MyAdItem = Advertisement & {
   expires_at?: string;
   has_pending_payment?: boolean;
   last_payment_id?: number;
+  last_payment_status?: string;
+  last_bank_status?: string;
+};
+
+export type PaymentEntity = {
+  id?: number;
+  ID?: number;
+  amount?: number;
+  Amount?: number;
+  status?: string;
+  Status?: string;
+  bank_status?: string;
+  BankStatus?: string;
+  payment_link?: string;
+  PaymentLink?: string;
+  operation_id?: string;
+  OperationID?: string;
+  paid_at?: string;
+  PaidAt?: string;
+  expires_at?: string;
+  ExpiresAt?: string;
+};
+
+export type PaymentPayload = {
+  advertisement?: { id?: number; ID?: number; title?: string; Title?: string };
+  payment?: PaymentEntity;
+  tariff?: { Name?: string; name?: string; Price?: number; price?: number };
+  payment_url?: string;
+  operation_id?: string;
+  bank_status?: string;
+  status?: string;
 };
 
 export async function createAd(payload: {
@@ -100,7 +131,13 @@ export async function selectTariff(adId: number, tariffId: number) {
       body: JSON.stringify({ tariff_id: tariffId }),
     },
   );
-  return parseResponse<{ payment_id: number; redirect: string }>(response);
+  return parseResponse<{
+    payment_id: number;
+    operation_id?: string;
+    payment_url?: string;
+    status: string;
+    redirect: string;
+  }>(response);
 }
 
 export async function getAdPayment(adId: number) {
@@ -108,7 +145,15 @@ export async function getAdPayment(adId: number) {
     credentials: "include",
     cache: "no-store",
   });
-  return parseResponse<any>(response);
+  return parseResponse<PaymentPayload>(response);
+}
+
+export async function getPaymentStatus(paymentId: number) {
+  const response = await fetch(buildApiUrl(`/payments/${paymentId}/status`), {
+    credentials: "include",
+    cache: "no-store",
+  });
+  return parseResponse<PaymentPayload>(response);
 }
 
 export async function markPaid(paymentId: number, comment: string) {

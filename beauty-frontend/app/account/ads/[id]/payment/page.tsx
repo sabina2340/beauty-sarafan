@@ -1,19 +1,16 @@
 "use client";
 
-import { getAdPayment, markPaid } from "@/lib/ads-api";
+import { PaymentPayload, getAdPayment, getPaymentStatus } from "@/lib/ads-api";
 import { useEffect, useMemo, useState } from "react";
 
-type PaymentPayload = {
-  advertisement?: { id?: number; ID?: number; title?: string; Title?: string };
-  payment?: { id?: number; ID?: number; amount?: number; Amount?: number };
-  tariff?: { Name?: string; name?: string };
-  qr_url?: string;
-};
+const FINAL_STATUSES = new Set(["paid", "failed", "expired", "refunded"]);
+
+function readValue<T>(primary?: T, secondary?: T) {
+  return primary ?? secondary;
+}
 
 export default function PaymentPage({ params }: { params: { id: string } }) {
   const [data, setData] = useState<PaymentPayload | null>(null);
-  const [comment, setComment] = useState("");
-  const [message, setMessage] = useState("");
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -23,25 +20,36 @@ export default function PaymentPage({ params }: { params: { id: string } }) {
       .catch((e) => setError(e.message));
   }, [params.id]);
 
-  const paymentId = useMemo(() => Number(data?.payment?.id ?? data?.payment?.ID ?? 0), [data]);
-  const adTitle = data?.advertisement?.title ?? data?.advertisement?.Title ?? "Объявление";
-  const tariffName = data?.tariff?.Name ?? data?.tariff?.name ?? "Тариф";
-  const paymentAmount = data?.payment?.amount ?? data?.payment?.Amount ?? 0;
+  const paymentId = useMemo(
+    () => Number(readValue(data?.payment?.id, data?.payment?.ID) ?? 0),
+    [data],
+  );
+  const adTitle = readValue(data?.advertisement?.title, data?.advertisement?.Title) ?? "Объявление";
+  const tariffName = readValue(data?.tariff?.name, data?.tariff?.Name) ?? "Тариф";
+  const paymentAmount = Number(readValue(data?.payment?.amount, data?.payment?.Amount) ?? readValue(data?.tariff?.price, data?.tariff?.Price) ?? 0);
+  const paymentStatus = data?.status ?? readValue(data?.payment?.status, data?.payment?.Status) ?? "created";
+  const bankStatus = data?.bank_status ?? readValue(data?.payment?.bank_status, data?.payment?.BankStatus) ?? "CREATED";
+  const paymentUrl = data?.payment_url ?? readValue(data?.payment?.payment_link, data?.payment?.PaymentLink) ?? "";
+  const paidAt = readValue(data?.payment?.paid_at, data?.payment?.PaidAt);
+  const expiresAt = readValue(data?.payment?.expires_at, data?.payment?.ExpiresAt);
+  const operationId = data?.operation_id ?? readValue(data?.payment?.operation_id, data?.payment?.OperationID) ?? "";
 
-  const onMarkPaid = async () => {
-    if (!paymentId) {
-      setError("Не найден номер платежа. Обновите страницу.");
+  useEffect(() => {
+    if (!paymentId || FINAL_STATUSES.has(paymentStatus)) {
       return;
     }
 
-    try {
-      const res = await markPaid(paymentId, comment.trim());
-      setError("");
-      setMessage(res.message);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Ошибка");
-    }
-  };
+    const intervalId = window.setInterval(() => {
+      getPaymentStatus(paymentId)
+        .then((payload) => {
+          setData(payload);
+          setError("");
+        })
+        .catch((e) => setError(e.message));
+    }, 5000);
+
+    return () => window.clearInterval(intervalId);
+  }, [paymentId, paymentStatus]);
 
   if (!data) {
     return (
@@ -61,18 +69,27 @@ export default function PaymentPage({ params }: { params: { id: string } }) {
       <p>
         Тариф: {tariffName} · {paymentAmount} ₽
       </p>
-      <img src={data.qr_url} alt="QR для оплаты" width={240} height={240} />
-      <p className="muted">Отсканируйте QR и оплатите. После оплаты нажмите кнопку ниже.</p>
-      <textarea
-        className="textarea"
-        placeholder="Комментарий к платежу"
-        value={comment}
-        onChange={(e) => setComment(e.target.value)}
-      />
-      <button className="btn btnPrimary" onClick={onMarkPaid}>
-        Я оплатил
-      </button>
-      {message ? <p className="adminOk">{message}</p> : null}
+      <p>
+        Статус оплаты: <strong>{paymentStatus}</strong>
+      </p>
+      <p>
+        Статус банка: <strong>{bankStatus}</strong>
+      </p>
+      {operationId ? <p className="muted">Операция Точки: {operationId}</p> : null}
+      {paymentUrl && paymentStatus !== "paid" ? (
+        <a className="btn btnPrimary" href={paymentUrl} target="_blank" rel="noreferrer">
+          Перейти к оплате
+        </a>
+      ) : null}
+      {paymentStatus !== "paid" ? (
+        <p className="muted">
+          Мы автоматически проверяем статус оплаты. После подтверждения банком объявление активируется без ручного подтверждения.
+        </p>
+      ) : (
+        <p className="adminOk">Оплата прошла успешно. Объявление активировано.</p>
+      )}
+      {paidAt ? <p className="muted">Оплачено: {new Date(paidAt).toLocaleString("ru-RU")}</p> : null}
+      {expiresAt ? <p className="muted">Ссылка действует до: {new Date(expiresAt).toLocaleString("ru-RU")}</p> : null}
       {error ? <p className="adminError">{error}</p> : null}
     </section>
   );
