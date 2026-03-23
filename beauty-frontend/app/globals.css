@@ -792,10 +792,10 @@ h4 {
 .sarafanPopupCard {
   position: relative;
   width: min(100%, 420px);
-  max-height: min(90vh, 760px);
-  overflow-y: auto;
-  gap: 12px;
-  padding: 16px;
+  max-height: min(88vh, 760px);
+  overflow: hidden auto;
+  gap: 0;
+  padding: 0;
   border-radius: 22px;
   box-shadow: 0 20px 48px rgba(14, 21, 35, 0.26);
   background: linear-gradient(180deg, #fffef9 0%, #ffffff 100%);
@@ -803,14 +803,17 @@ h4 {
 
 .sarafanPopupClose {
   z-index: 3;
-  top: 10px;
-  right: 10px;
+  top: 12px;
+  right: 12px;
+  width: 40px;
+  height: 40px;
+  background: rgba(255, 255, 255, 0.96);
   box-shadow: 0 4px 14px rgba(14, 21, 35, 0.16);
 }
 
 .sarafanPopupMediaWrap {
-  margin-right: 40px;
-  border-radius: 18px;
+  width: 100%;
+  border-radius: 22px 22px 0 0;
   overflow: hidden;
   background: #f7f7f7;
 }
@@ -818,9 +821,14 @@ h4 {
 .sarafanPopupMedia {
   display: block;
   width: 100%;
-  max-height: 220px;
+  height: clamp(180px, 34vw, 220px);
   object-fit: cover;
-  border-radius: 18px;
+}
+
+.sarafanPopupContent {
+  display: grid;
+  gap: 12px;
+  padding: 16px 16px 0;
 }
 
 .sarafanPopupEyebrow {
@@ -830,35 +838,40 @@ h4 {
   font-weight: 800;
   letter-spacing: 0.08em;
   text-transform: uppercase;
+  text-align: left;
 }
 
 .sarafanPopupTitle {
   margin: 0;
-  padding-right: 28px;
+  padding-right: 44px;
+  text-align: left;
+  font-size: clamp(24px, 5.6vw, 34px);
+  line-height: 1.08;
 }
 
 .sarafanPopupDescription {
   margin: 0;
   line-height: 1.5;
+  text-align: left;
 }
 
 .sarafanPopupMeta {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
+  text-align: left;
 }
 
 .sarafanPopupActions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  align-items: stretch;
+  padding: 16px;
 }
 
-.sarafanPopupCta,
-.sarafanPopupDismiss {
-  flex: 1 1 180px;
-  min-width: 180px;
+.sarafanPopupCta {
+  min-height: 50px;
+  width: 100%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .sarafanInstallHint {
@@ -1038,24 +1051,23 @@ h4 {
   }
 
   .sarafanInstallHint,
-  .sarafanFindsActions,
-  .sarafanPopupActions {
+  .sarafanFindsActions {
     flex-direction: column;
   }
 
   .sarafanPopupCard {
     width: min(100%, 360px);
-    max-height: min(88vh, 680px);
-    padding: 14px;
+    max-height: min(82vh, 680px);
   }
 
-  .sarafanPopupMediaWrap {
-    margin-right: 20px;
+  .sarafanPopupContent,
+  .sarafanPopupActions {
+    padding-left: 14px;
+    padding-right: 14px;
   }
 
-  .sarafanPopupCta,
-  .sarafanPopupDismiss {
-    min-width: 100%;
+  .sarafanPopupMedia {
+    height: 190px;
   }
 }
 

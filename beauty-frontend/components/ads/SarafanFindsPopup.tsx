@@ -10,7 +10,9 @@ type Props = {
 };
 
 const POPUP_DELAY_MS = 3000;
+const POPUP_COOLDOWN_MS = 25000;
 const POPUP_ROTATION_KEY = "sarafan-popup-rotation-index";
+const POPUP_LAST_SHOWN_AT_KEY = "sarafan-popup-last-shown-at";
 
 function readRotationIndex(): number {
   if (typeof window === "undefined") {
@@ -28,6 +30,24 @@ function saveRotationIndex(value: number) {
   }
 
   window.sessionStorage.setItem(POPUP_ROTATION_KEY, String(value));
+}
+
+function readLastShownAt(): number {
+  if (typeof window === "undefined") {
+    return 0;
+  }
+
+  const rawValue = window.sessionStorage.getItem(POPUP_LAST_SHOWN_AT_KEY);
+  const parsed = Number(rawValue ?? 0);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
+}
+
+function saveLastShownAt(value: number) {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  window.sessionStorage.setItem(POPUP_LAST_SHOWN_AT_KEY, String(value));
 }
 
 function buildShortDescription(ad: PopupAdCard | null) {
@@ -103,8 +123,16 @@ export function SarafanFindsPopup({ delayMs = POPUP_DELAY_MS }: Props) {
       return;
     }
 
+    const lastShownAt = readLastShownAt();
+    const now = Date.now();
+
+    if (lastShownAt > 0 && now - lastShownAt < POPUP_COOLDOWN_MS) {
+      return;
+    }
+
     timerRef.current = window.setTimeout(() => {
       setOpen(true);
+      saveLastShownAt(Date.now());
       timerRef.current = null;
     }, delayMs);
 
@@ -150,19 +178,18 @@ export function SarafanFindsPopup({ delayMs = POPUP_DELAY_MS }: Props) {
         <div className="sarafanPopupMediaWrap">
           <img src={imageUrl} alt={selectedAd.title} className="sarafanPopupMedia" />
         </div>
-        <p className="sarafanPopupEyebrow">Рекламное окно · Сарафанные находки</p>
-        <h3 className="h2 sarafanPopupTitle">{selectedAd.title}</h3>
-        <p className="muted sarafanPopupDescription">{description}</p>
-        <div className="sarafanPopupMeta muted">
-          <span>{selectedAd.city || "Онлайн / без города"}</span>
+        <div className="sarafanPopupContent">
+          <p className="sarafanPopupEyebrow">Рекламное окно · Сарафанные находки</p>
+          <h3 className="h2 sarafanPopupTitle">{selectedAd.title}</h3>
+          <p className="muted sarafanPopupDescription">{description}</p>
+          <div className="sarafanPopupMeta muted">
+            <span>{selectedAd.city || "Онлайн / без города"}</span>
+          </div>
         </div>
         <div className="sarafanPopupActions">
           <Link href={targetHref} className="btn btnPrimary sarafanPopupCta" onClick={onClose}>
             Перейти к объявлению
           </Link>
-          <button type="button" className="btn btnGhost sarafanPopupDismiss" onClick={onClose}>
-            Закрыть
-          </button>
         </div>
       </div>
     </div>
