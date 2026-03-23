@@ -143,7 +143,11 @@ func (s *Service) SyncPaymentStatus(ctx context.Context, payment *models.Payment
 		return err
 	}
 	payment.BankResponseRaw = string(responseRaw)
-	return ApplyBankOperation(database.DB, payment, response.Data)
+	if len(response.Data.Operation) == 0 {
+		payment.ErrorMessage = "tochka get payment response has empty operation list"
+		return fmt.Errorf("tochka get payment response has empty operation list")
+	}
+	return ApplyBankOperation(database.DB, payment, response.Data.Operation[0])
 }
 
 func (s *Service) ApplyWebhook(ctx context.Context, rawToken string) (*models.Payment, TochkaAcquiringWebhook, error) {
@@ -195,6 +199,9 @@ func ApplyBankOperation(db *gorm.DB, payment *models.Payment, operation TochkaPa
 		}
 		if expiresAt := parseTochkaExpiresAt(operation.ExpiresAtRaw); expiresAt != nil {
 			payment.ExpiresAt = expiresAt
+		}
+		if paidAt := parseTochkaExpiresAt(operation.PaidAtRaw); paidAt != nil {
+			payment.PaidAt = paidAt
 		}
 		if IsSuccessfulBankStatus(operation.Status) && payment.PaidAt == nil {
 			payment.PaidAt = &now

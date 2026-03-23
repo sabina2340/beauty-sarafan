@@ -3,6 +3,15 @@
 import { PaymentPayload, getAdPayment, getPaymentStatus } from "@/lib/ads-api";
 import { useEffect, useMemo, useState } from "react";
 
+const STATUS_LABELS: Record<string, string> = {
+  created: "Ожидает оплаты",
+  processing: "Платёж обрабатывается",
+  paid: "Оплачено",
+  failed: "Оплата не прошла",
+  expired: "Срок оплаты истёк",
+  refunded: "Платёж возвращён",
+};
+
 const FINAL_STATUSES = new Set(["paid", "failed", "expired", "refunded"]);
 
 function readValue<T>(primary?: T, secondary?: T) {
@@ -33,9 +42,11 @@ export default function PaymentPage({ params }: { params: { id: string } }) {
   const paidAt = readValue(data?.payment?.paid_at, data?.payment?.PaidAt);
   const expiresAt = readValue(data?.payment?.expires_at, data?.payment?.ExpiresAt);
   const operationId = data?.operation_id ?? readValue(data?.payment?.operation_id, data?.payment?.OperationID) ?? "";
+  const isFinalStatus = FINAL_STATUSES.has(paymentStatus);
+  const statusLabel = STATUS_LABELS[paymentStatus] ?? paymentStatus;
 
   useEffect(() => {
-    if (!paymentId || FINAL_STATUSES.has(paymentStatus)) {
+    if (!paymentId || isFinalStatus) {
       return;
     }
 
@@ -49,7 +60,7 @@ export default function PaymentPage({ params }: { params: { id: string } }) {
     }, 5000);
 
     return () => window.clearInterval(intervalId);
-  }, [paymentId, paymentStatus]);
+  }, [isFinalStatus, paymentId, paymentStatus]);
 
   if (!data) {
     return (
@@ -70,23 +81,29 @@ export default function PaymentPage({ params }: { params: { id: string } }) {
         Тариф: {tariffName} · {paymentAmount} ₽
       </p>
       <p>
-        Статус оплаты: <strong>{paymentStatus}</strong>
+        Статус оплаты: <strong>{statusLabel}</strong>
       </p>
       <p>
         Статус банка: <strong>{bankStatus}</strong>
       </p>
       {operationId ? <p className="muted">Операция Точки: {operationId}</p> : null}
-      {paymentUrl && paymentStatus !== "paid" ? (
+      {paymentUrl && !isFinalStatus ? (
         <a className="btn btnPrimary" href={paymentUrl} target="_blank" rel="noreferrer">
           Перейти к оплате
         </a>
       ) : null}
-      {paymentStatus !== "paid" ? (
+      {paymentStatus === "paid" ? (
+        <p className="adminOk">Оплата прошла успешно. Объявление активировано.</p>
+      ) : paymentStatus === "failed" ? (
+        <p className="adminError">Банк отклонил платёж. Попробуйте создать новый платёж.</p>
+      ) : paymentStatus === "expired" ? (
+        <p className="adminError">Срок действия ссылки на оплату истёк. Создайте новый платёж.</p>
+      ) : paymentStatus === "refunded" ? (
+        <p className="adminError">Платёж был возвращён.</p>
+      ) : (
         <p className="muted">
           Мы автоматически проверяем статус оплаты. После подтверждения банком объявление активируется без ручного подтверждения.
         </p>
-      ) : (
-        <p className="adminOk">Оплата прошла успешно. Объявление активировано.</p>
       )}
       {paidAt ? <p className="muted">Оплачено: {new Date(paidAt).toLocaleString("ru-RU")}</p> : null}
       {expiresAt ? <p className="muted">Ссылка действует до: {new Date(expiresAt).toLocaleString("ru-RU")}</p> : null}

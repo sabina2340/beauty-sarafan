@@ -74,7 +74,7 @@ func seedTariffs(db *gorm.DB) {
 		{Name: "Всплывающие окна и баннеры · 14 дней", Description: "Размещение во всплывающих окнах и баннерах", Price: 1000, DurationDays: 14, IsActive: true, SortOrder: 50},
 		{Name: "Всплывающие окна и баннеры · 30 дней", Description: "Размещение во всплывающих окнах и баннерах", Price: 1900, DurationDays: 30, IsActive: true, SortOrder: 60},
 	}
-	_ = db.Model(&models.Tariff{}).Update("is_active", false).Error
+	_ = db.Session(&gorm.Session{AllowGlobalUpdate: true}).Model(&models.Tariff{}).Update("is_active", false).Error
 	for _, item := range items {
 		tariff := item
 		if err := db.Where("name = ?", item.Name).Assign(item).FirstOrCreate(&tariff).Error; err != nil {
