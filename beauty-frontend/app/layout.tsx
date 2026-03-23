@@ -3,6 +3,7 @@ import "./globals.css";
 import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
 import { BottomNav } from "@/components/BottomNav";
+import { SarafanFindsPopup } from "@/components/ads/SarafanFindsPopup";
 
 export const metadata: Metadata = {
   manifest: "/manifest.webmanifest",
@@ -37,6 +38,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         <SiteHeader />
         <main className="container page">{children}</main>
         <SiteFooter />
+        <SarafanFindsPopup />
         <BottomNav />
       </body>
     </html>

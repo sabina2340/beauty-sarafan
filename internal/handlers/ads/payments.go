@@ -399,6 +399,33 @@ func HotOffers(c *gin.Context) {
 	c.JSON(http.StatusOK, rows)
 }
 
+// PopupActiveAds GET /ads/popup-active
+func PopupActiveAds(c *gin.Context) {
+	limit := 12
+	if q := c.Query("limit"); q != "" {
+		if parsed, err := strconv.Atoi(q); err == nil && parsed > 0 && parsed <= 30 {
+			limit = parsed
+		}
+	}
+	now := time.Now()
+	var rows []map[string]interface{}
+	err := popupVisibleAdsQuery(now).
+		Select(`a.id, a.user_id, a.type, a.title, a.description, a.city,
+			LEFT(COALESCE(a.description, ''), 140) as short_description,
+			COALESCE(a.activated_at, p.paid_at, a.created_at) as activated_at,
+			COALESCE(a.expires_at, p.paid_at + (t.duration_days || ' days')::interval) as expires_at,
+			COALESCE((SELECT ai.image_url FROM ad_images ai WHERE ai.advertisement_id = a.id ORDER BY ai.sort_order asc, ai.id asc LIMIT 1), '') AS image_url,
+			CASE WHEN a.user_id IS NOT NULL THEN '/masters/' || a.user_id::text ELSE '/hot-offers' END AS route`).
+		Order("RANDOM()").
+		Limit(limit).
+		Find(&rows).Error
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to load popup ads"})
+		return
+	}
+	c.JSON(http.StatusOK, rows)
+}
+
 // ActiveAds GET /ads/active?limit=10
 func ActiveAds(c *gin.Context) {
 	limit := 10

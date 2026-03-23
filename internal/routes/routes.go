@@ -65,6 +65,7 @@ func RegisterRoutes(r *gin.Engine, db *gorm.DB) {
 	r.GET("/ads", ads.PublicList)
 	r.GET("/hot-offers", ads.HotOffers)
 	r.GET("/ads/active", ads.ActiveAds)
+	r.GET("/ads/popup-active", ads.PopupActiveAds)
 	r.GET("/tariffs", ads.TariffsList)
 	r.GET("/advertisements/my", middleware.AuthMiddleware(), middleware.RequireRole(models.RoleUser), middleware.EnsureApproved(), ads.ListMine)
 	r.GET("/advertisements/:id", middleware.AuthMiddleware(), middleware.RequireRole(models.RoleUser), middleware.EnsureApproved(), ads.GetMine)

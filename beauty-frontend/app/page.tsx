@@ -24,17 +24,44 @@ export const metadata: Metadata = {
   description: "Мобильная платформа-каталог специалистов",
 };
 
+function normalizeCategoryGroups(data: unknown): CategoryGroup[] {
+  if (!Array.isArray(data)) {
+    return [];
+  }
+
+  return data.map((group) => {
+    const normalizedGroup = group as Partial<CategoryGroup>;
+    const items = Array.isArray(normalizedGroup.items) ? normalizedGroup.items : [];
+
+    return {
+      group_name: String(normalizedGroup.group_name ?? ""),
+      group_title: String(normalizedGroup.group_title ?? normalizedGroup.group_name ?? ""),
+      is_business: Boolean(normalizedGroup.is_business),
+      items: items.map((item) => {
+        const normalizedItem = item as Partial<CategoryItem>;
+        return {
+          id: Number(normalizedItem.id ?? 0),
+          name: String(normalizedItem.name ?? ""),
+          slug: String(normalizedItem.slug ?? ""),
+        };
+      }),
+    };
+  });
+}
+
 async function getCategoryGroups() {
   const res = await fetch(buildApiUrl("/category-groups"), {
     cache: "no-store",
   });
 
   if (!res.ok) return [];
-  return (await res.json()) as CategoryGroup[];
+  const data = await res.json().catch(() => null);
+  return normalizeCategoryGroups(data);
 }
 
 export default async function HomePage() {
-  const groups = await getCategoryGroups();
+  const groups = await getCategoryGroups().catch(() => []);
+  const safeGroups = Array.isArray(groups) ? groups : [];
 
   return (
     <section className="homePage">
@@ -42,7 +69,7 @@ export default async function HomePage() {
         <BrandLogo className="homeLogo" />
       </div>
       <div id="categories" className="homeContent card">
-        <RoleCategoryPicker groups={groups} />
+        <RoleCategoryPicker groups={safeGroups} />
       </div>
       <SarafanFindsInstallHint />
       <HotOffersCarousel />

@@ -206,10 +206,12 @@ func ApplyBankOperation(db *gorm.DB, payment *models.Payment, operation TochkaPa
 		if IsSuccessfulBankStatus(operation.Status) && payment.PaidAt == nil {
 			payment.PaidAt = &now
 			payment.ErrorMessage = ""
-			ad.Status = models.AdStatusActive
-			ad.ActivatedAt = &now
-			expiresAt := now.AddDate(0, 0, tariff.DurationDays)
-			ad.ExpiresAt = &expiresAt
+			if ad.Status == models.AdStatusApproved || ad.Status == models.AdStatusActive {
+				ad.Status = models.AdStatusActive
+				ad.ActivatedAt = &now
+				expiresAt := now.AddDate(0, 0, tariff.DurationDays)
+				ad.ExpiresAt = &expiresAt
+			}
 		} else if payment.Status == models.PaymentStatusExpired && payment.ExpiresAt == nil {
 			payment.ExpiresAt = &now
 		}

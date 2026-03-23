@@ -14,13 +14,14 @@ type Mode = "offer" | "seek" | "growth";
 
 export function RoleCategoryPicker({ groups }: Props) {
   const router = useRouter();
+  const safeGroups = Array.isArray(groups) ? groups : [];
   const [mode, setMode] = useState<Mode>("offer");
   const [findsOpen, setFindsOpen] = useState(false);
 
   const shownGroups = useMemo(() => {
-    if (mode === "growth") return groups.filter((g) => g.is_business);
-    return groups.filter((g) => !g.is_business);
-  }, [groups, mode]);
+    if (mode === "growth") return safeGroups.filter((g) => g.is_business);
+    return safeGroups.filter((g) => !g.is_business);
+  }, [safeGroups, mode]);
 
   const onOfferClick = async (categoryId: number) => {
     try {
@@ -64,7 +65,7 @@ export function RoleCategoryPicker({ groups }: Props) {
           <section key={group.group_name} className="groupCard">
             <h3>{group.group_title}</h3>
             <div className="servicesChips">
-              {group.items.map((item) => (
+              {(Array.isArray(group.items) ? group.items : []).map((item) => (
                 mode === "offer" ? (
                   <button key={item.id} type="button" className="serviceChip serviceChipBtn" onClick={() => onOfferClick(item.id)}>{item.name}</button>
                 ) : (

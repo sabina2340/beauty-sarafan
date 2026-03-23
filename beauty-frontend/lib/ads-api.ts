@@ -11,6 +11,18 @@ async function parseResponse<T>(response: Response): Promise<T> {
   return (await response.json()) as T;
 }
 
+async function parseArrayResponse<T>(response: Response): Promise<T[]> {
+  if (!response.ok) {
+    const payload = await response
+      .json()
+      .catch(() => ({ error: "Request failed" }));
+    throw new Error(payload.error || `Request failed: ${response.status}`);
+  }
+
+  const payload = await response.json().catch(() => null);
+  return Array.isArray(payload) ? (payload as T[]) : [];
+}
+
 export type Tariff = {
   ID?: number;
   Name?: string;
@@ -34,6 +46,11 @@ export type ActiveAdCard = {
   description: string;
   city: string;
   image_url: string;
+};
+
+export type PopupAdCard = ActiveAdCard & {
+  route: string;
+  short_description?: string;
 };
 
 export type MyAdItem = Advertisement & {
@@ -172,14 +189,21 @@ export async function getHotOffers() {
   const response = await fetch(buildApiUrl("/hot-offers"), {
     cache: "no-store",
   });
-  return parseResponse<ActiveAdCard[]>(response);
+  return parseArrayResponse<ActiveAdCard>(response);
 }
 
 export async function getActiveAds(limit = 10) {
   const response = await fetch(buildApiUrl(`/ads/active?limit=${limit}`), {
     cache: "no-store",
   });
-  return parseResponse<ActiveAdCard[]>(response);
+  return parseArrayResponse<ActiveAdCard>(response);
+}
+
+export async function getPopupAds() {
+  const response = await fetch(buildApiUrl("/ads/popup-active"), {
+    cache: "no-store",
+  });
+  return parseArrayResponse<PopupAdCard>(response);
 }
 
 export async function getAdminPendingPayments() {
