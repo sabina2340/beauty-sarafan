@@ -62,12 +62,14 @@ export type PaymentEntity = {
   PaidAt?: string;
   expires_at?: string;
   ExpiresAt?: string;
+  created_at?: string;
+  CreatedAt?: string;
 };
 
 export type PaymentPayload = {
   advertisement?: { id?: number; ID?: number; title?: string; Title?: string };
   payment?: PaymentEntity;
-  tariff?: { Name?: string; name?: string; Price?: number; price?: number };
+  tariff?: { id?: number; ID?: number; name?: string; Name?: string; price?: number; Price?: number };
   payment_url?: string;
   operation_id?: string;
   bank_status?: string;
