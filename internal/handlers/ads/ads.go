@@ -3,6 +3,7 @@ package ads
 import (
 	"beauty-sarafan/internal/database"
 	"beauty-sarafan/internal/models"
+	"beauty-sarafan/internal/payments"
 	"net/http"
 	"strconv"
 	"strings"
@@ -86,30 +87,45 @@ func ListMine(c *gin.Context) {
 		return
 	}
 
+	paymentService := payments.DefaultService()
 	rows := make([]gin.H, 0, len(ads))
 	for _, ad := range ads {
-		row := gin.H{
-			"id":               ad.ID,
-			"user_id":          ad.UserID,
-			"type":             ad.Type,
-			"title":            ad.Title,
-			"description":      ad.Description,
-			"city":             ad.City,
-			"category_id":      ad.CategoryID,
-			"status":           ad.Status,
-			"tariff_id":        ad.TariffID,
-			"activated_at":     ad.ActivatedAt,
-			"expires_at":       ad.ExpiresAt,
-			"rejection_reason": ad.RejectionReason,
-			"created_at":       ad.CreatedAt,
-		}
-
 		var p models.Payment
 		if err := database.DB.Where("advertisement_id = ?", ad.ID).Order("id desc").First(&p).Error; err == nil {
+			if p.OperationID != "" && p.Status != models.PaymentStatusPaid && p.Status != models.PaymentStatusExpired && p.Status != models.PaymentStatusFailed && p.Status != models.PaymentStatusRefunded {
+				_ = paymentService.SyncPaymentStatus(c.Request.Context(), &p)
+				_ = database.DB.First(&ad, ad.ID).Error
+			}
+		}
+
+		row := gin.H{
+			"id":                  ad.ID,
+			"user_id":             ad.UserID,
+			"type":                ad.Type,
+			"title":               ad.Title,
+			"description":         ad.Description,
+			"city":                ad.City,
+			"category_id":         ad.CategoryID,
+			"status":              ad.Status,
+			"tariff_id":           ad.TariffID,
+			"activated_at":        ad.ActivatedAt,
+			"expires_at":          ad.ExpiresAt,
+			"rejection_reason":    ad.RejectionReason,
+			"created_at":          ad.CreatedAt,
+			"is_paid":             false,
+			"can_select_tariff":   ad.Status == models.AdStatusApproved,
+			"has_pending_payment": false,
+		}
+
+		if p.ID != 0 {
+			isPaid := p.Status == models.PaymentStatusPaid
+			hasPendingPayment := p.Status == models.PaymentStatusCreated || p.Status == models.PaymentStatusProcessing
 			row["last_payment_id"] = p.ID
 			row["last_payment_status"] = p.Status
 			row["last_bank_status"] = p.BankStatus
-			row["has_pending_payment"] = p.Status == models.PaymentStatusCreated || p.Status == models.PaymentStatusProcessing
+			row["has_pending_payment"] = hasPendingPayment
+			row["is_paid"] = isPaid
+			row["can_select_tariff"] = ad.Status == models.AdStatusApproved && !hasPendingPayment && !isPaid
 		}
 
 		rows = append(rows, row)

@@ -53,7 +53,7 @@ export function SarafanFindsPopup({ delayMs = POPUP_DELAY_MS }: Props) {
     setOpen(false);
     setLoading(true);
 
-    getPopupAds()
+    getPopupAds(20)
       .then((data) => {
         if (!active) return;
 

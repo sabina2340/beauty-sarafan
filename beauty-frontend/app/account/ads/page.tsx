@@ -123,28 +123,54 @@ export default function MyAdsPage() {
             const selectedTariff = tariffs.find((t) => String(t.id ?? t.ID ?? "") === String(ad.tariff_id ?? ""));
             const tariffPrice = selectedTariff ? (selectedTariff.price ?? selectedTariff.Price) : null;
             const tariffName = selectedTariff ? (selectedTariff.name ?? selectedTariff.Name) : null;
+            const paymentStatus = ad.last_payment_status ?? "";
+            const bankStatus = ad.last_bank_status ?? "";
+            const isPaid = ad.is_paid || paymentStatus === "paid";
+            const canSelectTariff = ad.can_select_tariff ?? (ad.status === "approved" && !ad.has_pending_payment && !isPaid);
+            const paymentStatusLabel = paymentStatus === "paid"
+              ? "Оплачено"
+              : paymentStatus === "processing"
+                ? "Оплата обрабатывается"
+                : paymentStatus === "created"
+                  ? "Ожидает оплаты"
+                  : paymentStatus === "expired"
+                    ? "Ссылка на оплату истекла"
+                    : paymentStatus === "failed"
+                      ? "Оплата не прошла"
+                      : paymentStatus === "refunded"
+                        ? "Платёж возвращён"
+                        : "";
+
             return (
               <>
-          <strong>{ad.title}</strong>
-          <p className="muted">
-            {adTypeLabel(ad.type)} · {moderationStatusLabel(ad.status)} · {new Date(ad.created_at || Date.now()).toLocaleDateString()}
-          </p>
-          {tariffName ? <p className="muted">Тариф: {tariffName}</p> : null}
-          {tariffPrice ? <p><strong>Стоимость:</strong> {tariffPrice} ₽</p> : <p className="muted">Стоимость: не выбрана</p>}
-          {ad.expires_at ? <p>До: {new Date(ad.expires_at).toLocaleDateString()}</p> : null}
-          {ad.rejection_reason ? <div className="noticeBox noticeDanger"><strong>Причина отклонения</strong><p>{ad.rejection_reason}</p></div> : null}
-          <div className="adminActions">
-            {ad.status === "approved" ? (
-              <Link className="btn btnPrimary" href={`/account/ads/${ad.id}/tariff`}>
-                Выбрать тариф
-              </Link>
-            ) : null}
-            {ad.has_pending_payment ? (
-              <Link className="btn btnSecondary" href={`/account/ads/${ad.id}/payment`}>
-                Перейти к оплате
-              </Link>
-            ) : null}
-          </div>
+                <strong>{ad.title}</strong>
+                <p className="muted">
+                  {adTypeLabel(ad.type)} · {moderationStatusLabel(ad.status)} · {new Date(ad.created_at || Date.now()).toLocaleDateString()}
+                </p>
+                {tariffName ? <p className="muted">Тариф: {tariffName}</p> : null}
+                {tariffPrice ? <p><strong>Стоимость:</strong> {tariffPrice} ₽</p> : <p className="muted">Стоимость: не выбрана</p>}
+                {paymentStatusLabel ? (
+                  <p>
+                    <strong>Статус оплаты:</strong> {paymentStatusLabel}
+                    {bankStatus ? ` · ${bankStatus}` : ""}
+                  </p>
+                ) : null}
+                {isPaid ? <p className="adminOk">Объявление оплачено и участвует в рекламной выдаче после активации.</p> : null}
+                {ad.activated_at ? <p>Активно с: {new Date(ad.activated_at).toLocaleDateString()}</p> : null}
+                {ad.expires_at ? <p>До: {new Date(ad.expires_at).toLocaleDateString()}</p> : null}
+                {ad.rejection_reason ? <div className="noticeBox noticeDanger"><strong>Причина отклонения</strong><p>{ad.rejection_reason}</p></div> : null}
+                <div className="adminActions">
+                  {canSelectTariff ? (
+                    <Link className="btn btnPrimary" href={`/account/ads/${ad.id}/tariff`}>
+                      Выбрать тариф
+                    </Link>
+                  ) : null}
+                  {(ad.has_pending_payment || isPaid || paymentStatus === "failed" || paymentStatus === "expired") ? (
+                    <Link className={`btn ${ad.has_pending_payment ? "btnSecondary" : "btnGhost"}`} href={`/account/ads/${ad.id}/payment`}>
+                      {ad.has_pending_payment ? "Перейти к оплате" : isPaid ? "Посмотреть оплату" : "Открыть оплату"}
+                    </Link>
+                  ) : null}
+                </div>
               </>
             );
           })()}

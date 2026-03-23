@@ -416,7 +416,7 @@ func PopupActiveAds(c *gin.Context) {
 			COALESCE(a.expires_at, p.paid_at + (t.duration_days || ' days')::interval) as expires_at,
 			COALESCE((SELECT ai.image_url FROM ad_images ai WHERE ai.advertisement_id = a.id ORDER BY ai.sort_order asc, ai.id asc LIMIT 1), '') AS image_url,
 			CASE WHEN a.user_id IS NOT NULL THEN '/masters/' || a.user_id::text ELSE '/hot-offers' END AS route`).
-		Order("RANDOM()").
+		Order("COALESCE(a.activated_at, p.paid_at, a.created_at) desc, a.id desc").
 		Limit(limit).
 		Find(&rows).Error
 	if err != nil {

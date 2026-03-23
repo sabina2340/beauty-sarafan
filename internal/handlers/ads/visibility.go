@@ -23,7 +23,7 @@ func publiclyVisibleAdsQuery(now time.Time) *gorm.DB {
 	return database.DB.Table("advertisements a").
 		Joins(successfulAdPaymentJoin).
 		Joins("LEFT JOIN tariffs t ON t.id = p.tariff_id").
-		Where("a.status = ?", models.AdStatusActive).
+		Where("a.status IN ?", []string{models.AdStatusApproved, models.AdStatusActive}).
 		Where("p.id IS NOT NULL AND COALESCE(a.expires_at, p.paid_at + (t.duration_days || ' days')::interval) > ?", now)
 }
 

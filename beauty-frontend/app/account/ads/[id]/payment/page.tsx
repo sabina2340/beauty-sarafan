@@ -41,7 +41,6 @@ export default function PaymentPage({ params }: { params: { id: string } }) {
   const paymentUrl = data?.payment_url ?? readValue(data?.payment?.payment_link, data?.payment?.PaymentLink) ?? "";
   const paidAt = readValue(data?.payment?.paid_at, data?.payment?.PaidAt);
   const expiresAt = readValue(data?.payment?.expires_at, data?.payment?.ExpiresAt);
-  const operationId = data?.operation_id ?? readValue(data?.payment?.operation_id, data?.payment?.OperationID) ?? "";
   const isFinalStatus = FINAL_STATUSES.has(paymentStatus);
   const statusLabel = STATUS_LABELS[paymentStatus] ?? paymentStatus;
 
@@ -86,7 +85,6 @@ export default function PaymentPage({ params }: { params: { id: string } }) {
       <p>
         Статус банка: <strong>{bankStatus}</strong>
       </p>
-      {operationId ? <p className="muted">Операция Точки: {operationId}</p> : null}
       {paymentUrl && !isFinalStatus ? (
         <a className="btn btnPrimary" href={paymentUrl} target="_blank" rel="noreferrer">
           Перейти к оплате
@@ -106,6 +104,9 @@ export default function PaymentPage({ params }: { params: { id: string } }) {
         </p>
       )}
       {paidAt ? <p className="muted">Оплачено: {new Date(paidAt).toLocaleString("ru-RU")}</p> : null}
+      {readValue(data?.advertisement?.expires_at, data?.advertisement?.ExpiresAt) ? (
+        <p className="muted">Размещение активно до: {new Date(readValue(data?.advertisement?.expires_at, data?.advertisement?.ExpiresAt) as string).toLocaleString("ru-RU")}</p>
+      ) : null}
       {expiresAt ? <p className="muted">Ссылка действует до: {new Date(expiresAt).toLocaleString("ru-RU")}</p> : null}
       {error ? <p className="adminError">{error}</p> : null}
     </section>

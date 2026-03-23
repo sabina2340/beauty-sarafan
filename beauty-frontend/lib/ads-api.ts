@@ -56,10 +56,13 @@ export type PopupAdCard = ActiveAdCard & {
 export type MyAdItem = Advertisement & {
   tariff_id?: number;
   expires_at?: string;
+  activated_at?: string;
   has_pending_payment?: boolean;
   last_payment_id?: number;
   last_payment_status?: string;
   last_bank_status?: string;
+  is_paid?: boolean;
+  can_select_tariff?: boolean;
 };
 
 export type PaymentEntity = {
@@ -84,7 +87,7 @@ export type PaymentEntity = {
 };
 
 export type PaymentPayload = {
-  advertisement?: { id?: number; ID?: number; title?: string; Title?: string };
+  advertisement?: { id?: number; ID?: number; title?: string; Title?: string; status?: string; Status?: string; expires_at?: string; ExpiresAt?: string; activated_at?: string; ActivatedAt?: string };
   payment?: PaymentEntity;
   tariff?: { id?: number; ID?: number; name?: string; Name?: string; price?: number; Price?: number };
   payment_url?: string;
@@ -199,8 +202,8 @@ export async function getActiveAds(limit = 10) {
   return parseArrayResponse<ActiveAdCard>(response);
 }
 
-export async function getPopupAds() {
-  const response = await fetch(buildApiUrl("/ads/popup-active"), {
+export async function getPopupAds(limit = 12) {
+  const response = await fetch(buildApiUrl(`/ads/popup-active?limit=${limit}`), {
     cache: "no-store",
   });
   return parseArrayResponse<PopupAdCard>(response);
