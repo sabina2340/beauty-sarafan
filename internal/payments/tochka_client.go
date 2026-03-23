@@ -21,7 +21,7 @@ import (
 )
 
 const (
-	defaultCreatePaymentPath = "/acquiring/v1.0/payments"
+	defaultCreatePaymentPath = "/payments"
 )
 
 type Config struct {
