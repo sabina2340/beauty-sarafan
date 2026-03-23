@@ -79,8 +79,8 @@ export function BottomNav() {
               className="bottomNavItem"
               onClick={onLogout}
             >
-              <span aria-hidden>{item.icon}</span>
-              <span>{item.label}</span>
+              <span className="bottomNavIcon" aria-hidden>{item.icon}</span>
+              <span className="bottomNavLabel">{item.label}</span>
             </button>
           );
         }
@@ -90,9 +90,10 @@ export function BottomNav() {
             key={item.href}
             href={item.href}
             className={`bottomNavItem ${active ? "active" : ""}`}
+            aria-current={active ? "page" : undefined}
           >
-            <span aria-hidden>{item.icon}</span>
-            <span>{item.label}</span>
+            <span className="bottomNavIcon" aria-hidden>{item.icon}</span>
+            <span className="bottomNavLabel">{item.label}</span>
           </Link>
         );
       })}

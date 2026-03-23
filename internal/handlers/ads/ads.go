@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -395,19 +396,20 @@ func PublicList(c *gin.Context) {
 	city := c.Query("city")
 	categoryID := c.Query("category_id")
 
-	query := database.DB.Where("status = ?", models.AdStatusApproved)
+	now := time.Now()
+	query := publiclyVisibleAdsQuery(now).Select("a.*")
 	if adType != "" {
-		query = query.Where("type = ?", adType)
+		query = query.Where("a.type = ?", adType)
 	}
 	if city != "" {
-		query = query.Where("LOWER(city) = LOWER(?)", city)
+		query = query.Where("LOWER(a.city) = LOWER(?)", city)
 	}
 	if categoryID != "" {
-		query = query.Where("category_id = ?", categoryID)
+		query = query.Where("a.category_id = ?", categoryID)
 	}
 
 	var ads []models.Advertisement
-	if err := query.Order("id desc").Find(&ads).Error; err != nil {
+	if err := query.Order("COALESCE(a.activated_at, p.paid_at, a.created_at) desc").Find(&ads).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to load ads"})
 		return
 	}
@@ -429,8 +431,9 @@ func PublicByMaster(c *gin.Context) {
 		return
 	}
 
+	now := time.Now()
 	var ads []models.Advertisement
-	if err := database.DB.Where("user_id = ? AND status = ?", userID, models.AdStatusApproved).Order("id desc").Find(&ads).Error; err != nil {
+	if err := publiclyVisibleAdsQuery(now).Select("a.*").Where("a.user_id = ?", userID).Order("COALESCE(a.activated_at, p.paid_at, a.created_at) desc").Find(&ads).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to load ads"})
 		return
 	}

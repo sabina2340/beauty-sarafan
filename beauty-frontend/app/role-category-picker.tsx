@@ -15,6 +15,7 @@ type Mode = "offer" | "seek" | "growth";
 export function RoleCategoryPicker({ groups }: Props) {
   const router = useRouter();
   const [mode, setMode] = useState<Mode>("offer");
+  const [findsOpen, setFindsOpen] = useState(false);
 
   const shownGroups = useMemo(() => {
     if (mode === "growth") return groups.filter((g) => g.is_business);
@@ -38,9 +39,24 @@ export function RoleCategoryPicker({ groups }: Props) {
       </div>
 
       <div className="roleButtons">
-        <button type="button" className={`btn ${mode === "offer" ? "btnSecondary" : "btnGhost"}`} onClick={() => setMode("offer")}>✅ Разместить бесплатно услугу</button>
-        <button type="button" className={`btn ${mode === "seek" ? "btnSecondary" : "btnGhost"}`} onClick={() => setMode("seek")}>✅ Ищу услугу</button>
-        <button type="button" className={`btn ${mode === "growth" ? "btnSecondary" : "btnGhost"}`} onClick={() => setMode("growth")}>✅ Для роста и бизнеса</button>
+        <button type="button" className={`btn ${mode === "offer" ? "btnSecondary" : "btnGhost"}`} onClick={() => { setMode("offer"); setFindsOpen(false); }}>✅ Разместить бесплатно услугу</button>
+        <button type="button" className={`btn ${mode === "seek" ? "btnSecondary" : "btnGhost"}`} onClick={() => { setMode("seek"); setFindsOpen(false); }}>✅ Ищу услугу</button>
+        <button type="button" className={`btn ${mode === "growth" ? "btnSecondary" : "btnGhost"}`} onClick={() => { setMode("growth"); setFindsOpen(false); }}>✅ Для роста и бизнеса</button>
+        <div className={`roleButtonsGroup ${findsOpen ? "open" : ""}`}>
+          <button
+            type="button"
+            className={`btn ${findsOpen ? "btnSecondary" : "btnGhost"}`}
+            onClick={() => setFindsOpen((current) => !current)}
+            aria-expanded={findsOpen}
+            aria-controls="sarafan-finds-actions"
+          >
+            🔥 Сарафанные находки
+          </button>
+          <div id="sarafan-finds-actions" className={`roleButtonsSubmenu ${findsOpen ? "open" : ""}`}>
+            <Link href="/hot-offers" className="btn btnSecondary">Найти горячее предложение</Link>
+            <Link href="/account/ads" className="btn btnPrimary">Разместить горячее предложение (платно)</Link>
+          </div>
+        </div>
       </div>
 
       <div className="manualGroups">
