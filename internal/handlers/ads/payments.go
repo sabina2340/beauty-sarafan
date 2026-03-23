@@ -460,7 +460,7 @@ func syncPaymentIfNeeded(c *gin.Context, payment models.Payment) models.Payment 
 	if payment.OperationID == "" {
 		return payment
 	}
-	if payment.BankStatus == "APPROVED" || payment.Status == models.PaymentStatusPaid || payment.Status == models.PaymentStatusExpired || payment.Status == models.PaymentStatusFailed || payment.Status == models.PaymentStatusRefunded {
+	if payment.Status == models.PaymentStatusPaid || payment.Status == models.PaymentStatusExpired || payment.Status == models.PaymentStatusFailed || payment.Status == models.PaymentStatusRefunded {
 		return payment
 	}
 	service := payments.DefaultService()
