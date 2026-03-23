@@ -12,7 +12,9 @@ import (
 const successfulAdPaymentJoin = `LEFT JOIN LATERAL (
 	SELECT pay.id, pay.paid_at, pay.tariff_id
 	FROM payments pay
-	WHERE pay.advertisement_id = a.id AND pay.status = 'paid' AND pay.bank_status = 'APPROVED'
+	WHERE pay.advertisement_id = a.id
+		AND pay.status = 'paid'
+		AND (COALESCE(pay.operation_id, '') = '' OR pay.bank_status = 'APPROVED')
 	ORDER BY pay.paid_at DESC NULLS LAST, pay.id DESC
 	LIMIT 1
 ) p ON true`

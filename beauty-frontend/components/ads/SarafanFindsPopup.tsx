@@ -2,46 +2,78 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { usePathname } from "next/navigation";
 import { getPopupAds, type PopupAdCard } from "@/lib/ads-api";
 
 type Props = {
   delayMs?: number;
-  reopenCooldownMs?: number;
 };
 
-const POPUP_DELAY_MS = 5000;
-const POPUP_REOPEN_COOLDOWN_MS = 15000;
+const POPUP_DELAY_MS = 3000;
+const POPUP_ROTATION_KEY = "sarafan-popup-rotation-index";
 
-function pickRandomItem(items: PopupAdCard[]): PopupAdCard | null {
-  const safeItems = Array.isArray(items) ? items : [];
-  if (safeItems.length === 0) {
-    return null;
+function readRotationIndex(): number {
+  if (typeof window === "undefined") {
+    return 0;
   }
 
-  const index = Math.floor(Math.random() * safeItems.length);
-  return safeItems[index] ?? safeItems[0] ?? null;
+  const rawValue = window.sessionStorage.getItem(POPUP_ROTATION_KEY);
+  const parsed = Number(rawValue ?? 0);
+  return Number.isFinite(parsed) && parsed >= 0 ? parsed : 0;
 }
 
-export function SarafanFindsPopup({
-  delayMs = POPUP_DELAY_MS,
-  reopenCooldownMs = POPUP_REOPEN_COOLDOWN_MS,
-}: Props) {
+function saveRotationIndex(value: number) {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  window.sessionStorage.setItem(POPUP_ROTATION_KEY, String(value));
+}
+
+function buildShortDescription(ad: PopupAdCard | null) {
+  if (!ad) {
+    return "";
+  }
+
+  const source = ad.short_description || ad.description || "Описание добавляется";
+  return source.length > 180 ? `${source.slice(0, 177)}...` : source;
+}
+
+export function SarafanFindsPopup({ delayMs = POPUP_DELAY_MS }: Props) {
+  const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const [items, setItems] = useState<PopupAdCard[]>([]);
   const [loading, setLoading] = useState(true);
-  const closedAtRef = useRef<number | null>(null);
+  const [selectedIndex, setSelectedIndex] = useState(0);
+  const timerRef = useRef<number | null>(null);
 
   useEffect(() => {
     let active = true;
 
+    setOpen(false);
+    setLoading(true);
+
     getPopupAds()
       .then((data) => {
         if (!active) return;
-        setItems(Array.isArray(data) ? data : []);
+
+        const nextItems = Array.isArray(data) ? data : [];
+        setItems(nextItems);
+
+        if (nextItems.length === 0) {
+          setSelectedIndex(0);
+          return;
+        }
+
+        const rotationIndex = readRotationIndex();
+        const nextIndex = rotationIndex % nextItems.length;
+        setSelectedIndex(nextIndex);
+        saveRotationIndex(rotationIndex + 1);
       })
       .catch(() => {
         if (!active) return;
         setItems([]);
+        setSelectedIndex(0);
       })
       .finally(() => {
         if (active) {
@@ -52,31 +84,60 @@ export function SarafanFindsPopup({
     return () => {
       active = false;
     };
-  }, []);
+  }, [pathname]);
 
-  const selectedAd = useMemo(() => pickRandomItem(items), [items]);
+  const selectedAd = useMemo(() => {
+    if (!items.length) {
+      return null;
+    }
+    return items[selectedIndex] ?? items[0] ?? null;
+  }, [items, selectedIndex]);
 
   useEffect(() => {
-    if (loading) return;
-    if (!selectedAd) return;
+    if (timerRef.current !== null) {
+      window.clearTimeout(timerRef.current);
+      timerRef.current = null;
+    }
 
-    const now = Date.now();
-    if (closedAtRef.current && now - closedAtRef.current < reopenCooldownMs) {
+    if (loading || !selectedAd) {
       return;
     }
 
-    const timer = window.setTimeout(() => setOpen(true), delayMs);
-    return () => window.clearTimeout(timer);
-  }, [delayMs, loading, reopenCooldownMs, selectedAd]);
+    timerRef.current = window.setTimeout(() => {
+      setOpen(true);
+      timerRef.current = null;
+    }, delayMs);
+
+    return () => {
+      if (timerRef.current !== null) {
+        window.clearTimeout(timerRef.current);
+        timerRef.current = null;
+      }
+    };
+  }, [delayMs, loading, selectedAd, pathname]);
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setOpen(false);
+      }
+    };
+
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, []);
 
   const onClose = () => {
     setOpen(false);
-    closedAtRef.current = Date.now();
+    if (timerRef.current !== null) {
+      window.clearTimeout(timerRef.current);
+      timerRef.current = null;
+    }
   };
 
   if (!open || !selectedAd) return null;
 
-  const description = selectedAd.short_description || selectedAd.description || "Описание добавляется";
+  const description = buildShortDescription(selectedAd);
   const imageUrl = selectedAd.image_url || "/logo-placeholder.png";
   const targetHref = selectedAd.route || "/hot-offers";
 
@@ -89,7 +150,7 @@ export function SarafanFindsPopup({
         <div className="sarafanPopupMediaWrap">
           <img src={imageUrl} alt={selectedAd.title} className="sarafanPopupMedia" />
         </div>
-        <p className="sarafanPopupEyebrow">Сарафанные находки</p>
+        <p className="sarafanPopupEyebrow">Рекламное окно · Сарафанные находки</p>
         <h3 className="h2 sarafanPopupTitle">{selectedAd.title}</h3>
         <p className="muted sarafanPopupDescription">{description}</p>
         <div className="sarafanPopupMeta muted">
@@ -99,7 +160,7 @@ export function SarafanFindsPopup({
           <Link href={targetHref} className="btn btnPrimary sarafanPopupCta" onClick={onClose}>
             Перейти к объявлению
           </Link>
-          <button type="button" className="btn btnGhost" onClick={onClose}>
+          <button type="button" className="btn btnGhost sarafanPopupDismiss" onClick={onClose}>
             Закрыть
           </button>
         </div>

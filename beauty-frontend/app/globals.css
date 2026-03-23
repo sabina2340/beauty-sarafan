@@ -768,6 +768,10 @@ h4 {
   margin-bottom: 12px;
 }
 
+.sarafanFindsHeaderCompact {
+  margin-bottom: 14px;
+}
+
 .sarafanFindsSubtitle {
   margin: 4px 0 0;
 }
@@ -781,6 +785,8 @@ h4 {
 .sarafanPopupOverlay {
   padding: 16px;
   align-items: center;
+  background: rgba(7, 12, 20, 0.56);
+  backdrop-filter: blur(4px);
 }
 
 .sarafanPopupCard {
@@ -789,14 +795,24 @@ h4 {
   max-height: min(90vh, 760px);
   overflow-y: auto;
   gap: 12px;
+  padding: 16px;
+  border-radius: 22px;
+  box-shadow: 0 20px 48px rgba(14, 21, 35, 0.26);
+  background: linear-gradient(180deg, #fffef9 0%, #ffffff 100%);
 }
 
 .sarafanPopupClose {
-  z-index: 2;
+  z-index: 3;
+  top: 10px;
+  right: 10px;
+  box-shadow: 0 4px 14px rgba(14, 21, 35, 0.16);
 }
 
 .sarafanPopupMediaWrap {
-  margin-right: 32px;
+  margin-right: 40px;
+  border-radius: 18px;
+  overflow: hidden;
+  background: #f7f7f7;
 }
 
 .sarafanPopupMedia {
@@ -804,7 +820,7 @@ h4 {
   width: 100%;
   max-height: 220px;
   object-fit: cover;
-  border-radius: 14px;
+  border-radius: 18px;
 }
 
 .sarafanPopupEyebrow {
@@ -836,10 +852,13 @@ h4 {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
+  align-items: stretch;
 }
 
-.sarafanPopupCta {
-  min-width: 220px;
+.sarafanPopupCta,
+.sarafanPopupDismiss {
+  flex: 1 1 180px;
+  min-width: 180px;
 }
 
 .sarafanInstallHint {
@@ -1027,13 +1046,15 @@ h4 {
   .sarafanPopupCard {
     width: min(100%, 360px);
     max-height: min(88vh, 680px);
+    padding: 14px;
   }
 
   .sarafanPopupMediaWrap {
-    margin-right: 24px;
+    margin-right: 20px;
   }
 
-  .sarafanPopupCta {
+  .sarafanPopupCta,
+  .sarafanPopupDismiss {
     min-width: 100%;
   }
 }

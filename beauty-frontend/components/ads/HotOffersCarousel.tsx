@@ -1,6 +1,5 @@
 import { getActiveAds } from "@/lib/ads-api";
 import { AdCard } from "@/components/ads/AdCard";
-import Link from "next/link";
 
 export async function HotOffersCarousel() {
   const ads = await getActiveAds(8).catch(() => []);
@@ -8,14 +7,10 @@ export async function HotOffersCarousel() {
 
   return (
     <section className="card">
-      <div className="sarafanFindsHeader">
+      <div className="sarafanFindsHeader sarafanFindsHeaderCompact">
         <div>
           <h2 className="h2">Сарафанные находки</h2>
-          <p className="muted sarafanFindsSubtitle">Проверенные акции</p>
-        </div>
-        <div className="sarafanFindsActions">
-          <Link href="/hot-offers" className="btn btnSecondary">Найти горячие предложения</Link>
-          <Link href="/account/ads" className="btn btnPrimary">Разместить горячее предложение (платно)</Link>
+          <p className="muted sarafanFindsSubtitle">Проверенные акции и предложения, которые уже активны и доступны для показа.</p>
         </div>
       </div>
       {items.length > 0 ? (

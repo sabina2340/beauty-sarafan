@@ -64,7 +64,7 @@ export default function NewAdPage() {
           <option value="salon">Салон</option>
         </select>
         <input className="input" placeholder="Заголовок" value={title} onChange={(e) => setTitle(e.target.value)} required />
-        <textarea className="textarea" placeholder="Описание" value={description} onChange={(e) => setDescription(e.target.value)} required />
+        <textarea className="textarea" placeholder="Обязательно! Подробно опишите акцию или предложение, укажите размер скидки и срок действия! Если есть картинка или фото — приложите в описании." value={description} onChange={(e) => setDescription(e.target.value)} required />
         <input className="input" placeholder="Город" value={city} onChange={(e) => setCity(e.target.value)} required />
         <select className="select" value={categoryId} onChange={(e) => setCategoryId(e.target.value)} required disabled={loadingCategories}>
           <option value="">{loadingCategories ? "Загрузка категорий..." : "Выберите категорию"}</option>
