@@ -56,6 +56,7 @@ export type PopupAdCard = ActiveAdCard & {
 export type MyAdItem = Advertisement & {
   tariff_id?: number;
   expires_at?: string;
+  is_expired?: boolean;
   activated_at?: string;
   has_pending_payment?: boolean;
   last_payment_id?: number;

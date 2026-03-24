@@ -39,7 +39,11 @@ export default async function MasterDetailPage({ params, searchParams }: Props) 
 
         <article className="card masterHeroCard">
           <div className="masterTop">
-            <img src={master.avatar_url || "/logo-placeholder.svg"} alt={master.full_name || "Мастер"} className="masterAvatar" />
+            <img
+              src={master.avatar_url || "/logo-placeholder.png"}
+              alt={master.full_name || "Мастер"}
+              className={`masterAvatar ${master.avatar_url ? "" : "avatarFallback"}`}
+            />
             <div className="masterHeadInfo">
               <h1>{master.full_name || master.login}</h1>
               <div className="badgeRow">

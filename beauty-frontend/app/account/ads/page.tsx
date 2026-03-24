@@ -120,13 +120,17 @@ export default function MyAdsPage() {
       {ads.map((ad) => (
         <article key={ad.id} className="adminItem">
           {(() => {
+            const expiresAtTs = ad.expires_at ? new Date(ad.expires_at).getTime() : null;
+            const isExpiredByDate = typeof expiresAtTs === "number" && Number.isFinite(expiresAtTs) && expiresAtTs < Date.now();
+            const isExpired = Boolean(ad.is_expired) || isExpiredByDate;
             const selectedTariff = tariffs.find((t) => String(t.id ?? t.ID ?? "") === String(ad.tariff_id ?? ""));
             const tariffPrice = selectedTariff ? (selectedTariff.price ?? selectedTariff.Price) : null;
             const tariffName = selectedTariff ? (selectedTariff.name ?? selectedTariff.Name) : null;
             const paymentStatus = ad.last_payment_status ?? "";
             const bankStatus = ad.last_bank_status ?? "";
             const isPaid = ad.is_paid || paymentStatus === "paid";
-            const canSelectTariff = ad.can_select_tariff ?? (ad.status === "approved" && !ad.has_pending_payment && !isPaid);
+            const canSelectTariff = (ad.can_select_tariff ?? (ad.status === "approved" && !ad.has_pending_payment && !isPaid)) && !isExpired;
+            const canRenew = isExpired && ad.status === "approved" && !ad.has_pending_payment;
             const paymentStatusLabel = paymentStatus === "paid"
               ? "Оплачено"
               : paymentStatus === "processing"
@@ -145,7 +149,7 @@ export default function MyAdsPage() {
               <>
                 <strong>{ad.title}</strong>
                 <p className="muted">
-                  {adTypeLabel(ad.type)} · {moderationStatusLabel(ad.status)} · {new Date(ad.created_at || Date.now()).toLocaleDateString()}
+                  {adTypeLabel(ad.type)} · {isExpired ? "Срок размещения истек" : moderationStatusLabel(ad.status)} · {new Date(ad.created_at || Date.now()).toLocaleDateString()}
                 </p>
                 {tariffName ? <p className="muted">Тариф: {tariffName}</p> : null}
                 {tariffPrice ? <p><strong>Стоимость:</strong> {tariffPrice} ₽</p> : <p className="muted">Стоимость: не выбрана</p>}
@@ -155,7 +159,8 @@ export default function MyAdsPage() {
                     {bankStatus ? ` · ${bankStatus}` : ""}
                   </p>
                 ) : null}
-                {isPaid ? <p className="adminOk">Объявление оплачено и участвует в рекламной выдаче после активации.</p> : null}
+                {isExpired ? <p className="adminError">Объявление истекло. Чтобы снова показываться в выдаче, продлите размещение.</p> : null}
+                {isPaid && !isExpired ? <p className="adminOk">Объявление оплачено и участвует в рекламной выдаче после активации.</p> : null}
                 {ad.activated_at ? <p>Активно с: {new Date(ad.activated_at).toLocaleDateString()}</p> : null}
                 {ad.expires_at ? <p>До: {new Date(ad.expires_at).toLocaleDateString()}</p> : null}
                 {ad.rejection_reason ? <div className="noticeBox noticeDanger"><strong>Причина отклонения</strong><p>{ad.rejection_reason}</p></div> : null}
@@ -163,6 +168,11 @@ export default function MyAdsPage() {
                   {canSelectTariff ? (
                     <Link className="btn btnPrimary" href={`/account/ads/${ad.id}/tariff`}>
                       Выбрать тариф
+                    </Link>
+                  ) : null}
+                  {canRenew ? (
+                    <Link className="btn btnPrimary" href={`/account/ads/${ad.id}/tariff`}>
+                      Продлить
                     </Link>
                   ) : null}
                   {(ad.has_pending_payment || isPaid || paymentStatus === "failed" || paymentStatus === "expired") ? (

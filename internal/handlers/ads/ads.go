@@ -110,6 +110,7 @@ func ListMine(c *gin.Context) {
 			"tariff_id":           ad.TariffID,
 			"activated_at":        ad.ActivatedAt,
 			"expires_at":          ad.ExpiresAt,
+			"is_expired":          ad.ExpiresAt != nil && ad.ExpiresAt.Before(time.Now()),
 			"rejection_reason":    ad.RejectionReason,
 			"created_at":          ad.CreatedAt,
 			"is_paid":             false,

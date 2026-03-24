@@ -189,7 +189,15 @@ export default function ProfilePage() {
         <div className="authForm">
           <article className="card masterHeroCard">
             <div className="masterTop">
-              <img src={profile?.avatar_url || "/logo-placeholder.svg"} alt={profile?.full_name || me.login} className="masterAvatar" />
+              <img
+                src={profile?.avatar_url || "/logo-placeholder.png"}
+                alt={profile?.full_name || me.login}
+                className={`masterAvatar ${profile?.avatar_url ? "" : "avatarFallback"}`}
+                onError={(event) => {
+                  event.currentTarget.src = "/logo-placeholder.png";
+                  event.currentTarget.classList.add("avatarFallback");
+                }}
+              />
               <div className="masterHeadInfo">
                 <h2>{profile?.full_name || me.login}</h2>
                 <div className="badgeRow">

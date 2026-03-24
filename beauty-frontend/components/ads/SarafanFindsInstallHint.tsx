@@ -1,10 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 
 export function SarafanFindsInstallHint() {
   const [visible, setVisible] = useState(false);
-  const [isIos, setIsIos] = useState(false);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -14,16 +13,8 @@ export function SarafanFindsInstallHint() {
     const mobile = /Android|iPhone|iPad|iPod/i.test(ua);
     if (!mobile) return;
 
-    setIsIos(/iPhone|iPad|iPod/i.test(ua));
     setVisible(true);
   }, []);
-
-  const hintText = useMemo(() => {
-    if (isIos) {
-      return "Откройте меню «Поделиться» в Safari и выберите «На экран Домой», чтобы закрепить сайт.";
-    }
-    return "Откройте меню браузера и выберите «Добавить на главный экран», чтобы закрепить сайт на телефоне.";
-  }, [isIos]);
 
   const onClose = () => {
     setVisible(false);
@@ -38,7 +29,8 @@ export function SarafanFindsInstallHint() {
     <div className="noticeBox sarafanInstallHint">
       <div>
         <strong>Добавить на главный экран</strong>
-        <p>{hintText}</p>
+        <p><strong>iPhone (Safari):</strong> Откройте меню «Поделиться» и выберите «На экран Домой».</p>
+        <p><strong>Android:</strong> Откройте меню браузера (три точки) и выберите «Добавить на главный экран» или «Установить приложение», если такая кнопка доступна.</p>
       </div>
       <button type="button" className="btn btnGhost" onClick={onClose}>
         Закрыть

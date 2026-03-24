@@ -8,10 +8,20 @@ type Props = {
 
 export function MasterCard({ master, backQuery }: Props) {
   const to = `/masters/${master.user_id}${backQuery ? `?back=${encodeURIComponent(backQuery)}` : ""}`;
+  const hasAvatar = Boolean(master.avatar_url);
+  const avatarSrc = master.avatar_url || "/logo-placeholder.png";
 
   return (
     <article className="card masterCard">
-      {master.avatar_url ? <img src={master.avatar_url} alt={master.full_name || master.login} className="masterCardImg" /> : null}
+      <img
+        src={avatarSrc}
+        alt={master.full_name || master.login}
+        className={`masterCardImg ${hasAvatar ? "" : "avatarFallback"}`}
+        onError={(event) => {
+          event.currentTarget.src = "/logo-placeholder.png";
+          event.currentTarget.classList.add("avatarFallback");
+        }}
+      />
       <h3>{master.full_name || master.login}</h3>
       <p className="meta">{master.category_name || "Категория не указана"}</p>
       <p className="meta">{master.city || "Город не указан"} {master.verified ? "· Проверен" : ""}</p>
