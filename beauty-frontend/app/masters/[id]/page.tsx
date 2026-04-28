@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { getMasterAds, getMasterById, getMasterReviews } from "@/lib/api";
 import { MasterReviewsSection } from "@/components/MasterReviewsSection";
+import { MasterStoriesViewer } from "@/components/MasterStoriesViewer";
 
 type Props = {
   params: { id: string };
@@ -39,10 +40,11 @@ export default async function MasterDetailPage({ params, searchParams }: Props) 
 
         <article className="card masterHeroCard">
           <div className="masterTop">
-            <img
-              src={master.avatar_url || "/logo-placeholder.png"}
-              alt={master.full_name || "Мастер"}
-              className={`masterAvatar ${master.avatar_url ? "" : "avatarFallback"}`}
+            <MasterStoriesViewer
+              masterId={params.id}
+              avatarUrl={master.avatar_url}
+              fullName={master.full_name || master.login}
+              hasActiveStories={master.has_active_stories}
             />
             <div className="masterHeadInfo">
               <h1>{master.full_name || master.login}</h1>
@@ -77,10 +79,16 @@ export default async function MasterDetailPage({ params, searchParams }: Props) 
           <h2>Галерея работ</h2>
           {master.work_images && master.work_images.length > 0 ? (
             <div className="workGrid">
-              {master.work_images.map((imageUrl) => (
-                <a key={imageUrl} href={imageUrl} target="_blank">
-                  <img src={imageUrl} alt="Пример работы" />
-                </a>
+              {master.work_images.map((item) => (
+                <div key={item.id}>
+                  {(item.media_type || "image") === "video" ? (
+                    <video className="workGridMedia" src={item.video_url} controls playsInline preload="metadata" />
+                  ) : (
+                    <a href={item.image_url} target="_blank">
+                      <img className="workGridMedia" src={item.image_url} alt="Пример работы" />
+                    </a>
+                  )}
+                </div>
               ))}
             </div>
           ) : <p>Примеры работ пока не загружены</p>}

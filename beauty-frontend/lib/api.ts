@@ -3,6 +3,7 @@ import {
   MasterCard,
   MasterDetail,
   ReviewItem,
+  StoryItem,
 } from "@/lib/types";
 import { buildApiUrl } from "@/lib/api-base";
 
@@ -50,6 +51,14 @@ export async function getMasterReviews(id: string): Promise<ReviewItem[]> {
     cache: "no-store",
   });
   return parseResponse<ReviewItem[]>(response);
+}
+
+export async function getMasterStories(id: string): Promise<StoryItem[]> {
+  const response = await fetch(buildApiUrl(`/masters/${id}/stories`), {
+    cache: "no-store",
+  });
+  const payload = await parseResponse<{ items: StoryItem[] }>(response);
+  return Array.isArray(payload.items) ? payload.items : [];
 }
 
 export async function createMasterReview(

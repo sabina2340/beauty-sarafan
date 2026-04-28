@@ -39,6 +39,9 @@ func RegisterRoutes(r *gin.Engine, db *gorm.DB) {
 		meGroup.PUT("/login", me.PutLogin)
 		meGroup.GET("/consents/personal-data", me.GetPersonalDataConsent)
 		meGroup.POST("/consents/personal-data", me.PostPersonalDataConsent)
+		meGroup.GET("/stories", me.GetMyStories)
+		meGroup.POST("/stories", me.PostMyStory)
+		meGroup.DELETE("/stories/:id", me.DeleteMyStory)
 
 		meAds := meGroup.Group("/ads")
 		meAds.Use(middleware.RequireRole(models.RoleUser), middleware.EnsureApproved())
@@ -57,6 +60,7 @@ func RegisterRoutes(r *gin.Engine, db *gorm.DB) {
 	r.GET("/masters/:id/ads", ads.PublicByMaster)
 	r.GET("/masters/:id/reviews", publicHandlers.ListApprovedReviews)
 	r.POST("/masters/:id/reviews", publicHandlers.CreateReview)
+	r.GET("/masters/:id/stories", publicHandlers.GetMasterStories)
 	r.POST("/support-requests", publicHandlers.CreateSupportRequest)
 
 	r.GET("/equipment", equipment.List)
@@ -97,6 +101,7 @@ func RegisterRoutes(r *gin.Engine, db *gorm.DB) {
 	adminGroup.Use(middleware.AuthMiddleware(), middleware.RequireAnyRole(models.RoleAdmin, models.RoleModerator))
 	{
 		adminGroup.GET("/ping", admin.Ping)
+		adminGroup.GET("/stats/users", admin.GetUserStats)
 		adminGroup.GET("/masters", admin.ListMasters)
 		adminGroup.PATCH("/users/:id/moderate", admin.ModerateUser)
 		adminGroup.PATCH("/users/:id/approve", admin.ApproveUser)

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { FormEvent, useEffect, useMemo, useState } from "react";
-import { acceptPersonalDataConsent, authMe, getMyProfile, getPersonalDataConsent, upsertMyProfile, type AuthMe, type MyMasterProfile } from "@/lib/auth-api";
+import { acceptPersonalDataConsent, authMe, createMyStory, deleteMyStory, getMyProfile, getMyStories, getPersonalDataConsent, upsertMyProfile, type AuthMe, type MyMasterProfile, type MyStory } from "@/lib/auth-api";
 import { readableApiError } from "@/lib/labels";
 import { FileUploadField } from "@/components/FileUploadField";
 
@@ -47,6 +47,9 @@ export default function ProfilePage() {
   const [socialLinks, setSocialLinks] = useState("");
   const [avatar, setAvatar] = useState<File | null>(null);
   const [works, setWorks] = useState<File[]>([]);
+  const [workVideos, setWorkVideos] = useState<File[]>([]);
+  const [stories, setStories] = useState<MyStory[]>([]);
+  const [storyMedia, setStoryMedia] = useState<File | null>(null);
   const [consentChecked, setConsentChecked] = useState(false);
   const [consentAcceptedAt, setConsentAcceptedAt] = useState<string | null>(null);
 
@@ -85,6 +88,8 @@ export default function ProfilePage() {
           if (presetCategory) setCategoryId(presetCategory);
           setEditMode(true);
         }
+        const myStories = await getMyStories().catch(() => []);
+        if (active) setStories(Array.isArray(myStories) ? myStories : []);
       })
       .catch((err) => {
         if (active) setError(readableApiError(err instanceof Error ? err.message : "Ошибка загрузки профиля"));
@@ -136,11 +141,13 @@ export default function ProfilePage() {
         social_links: socialLinks.trim(),
         avatar,
         works,
+        work_videos: workVideos,
       });
 
       setProfile(saved);
       setAvatar(null);
       setWorks([]);
+      setWorkVideos([]);
       setEditMode(false);
       setSuccess("Профиль сохранён и сразу доступен для публикации");
     } catch (err) {
@@ -217,9 +224,15 @@ export default function ProfilePage() {
                 <h3>Примеры работ</h3>
                 <div className="uploadPreviewGrid">
                   {profile.work_images.map((item, index) => (
-                    <a key={`${item.image_url}-${index}`} href={item.image_url} target="_blank" rel="noreferrer">
-                      <img src={item.image_url} alt={`Работа ${index + 1}`} className="uploadPreviewImg" />
-                    </a>
+                    <div key={`${item.id}-${index}`}>
+                      {(item.media_type || "image") === "video" ? (
+                        <video src={item.video_url} controls playsInline preload="metadata" className="uploadPreviewImg" />
+                      ) : (
+                        <a href={item.image_url} target="_blank" rel="noreferrer">
+                          <img src={item.image_url} alt={`Работа ${index + 1}`} className="uploadPreviewImg" />
+                        </a>
+                      )}
+                    </div>
                   ))}
                 </div>
               </>
@@ -280,8 +293,22 @@ export default function ProfilePage() {
             emptyText="Файлы не выбраны"
             onFilesChange={(files) => setWorks((prev) => mergeWorkFiles(prev, files))}
           />
+          <FileUploadField
+            id="work-videos"
+            label="Видео работ (до 3 шт., mp4/webm/mov)"
+            buttonText="Выбрать видео"
+            accept="video/mp4,video/webm,video/quicktime"
+            multiple
+            selectedFiles={workVideos}
+            showFileList
+            emptyText="Видео не выбраны"
+            onFilesChange={(files) => setWorkVideos(files.slice(0, 3))}
+          />
           {works.length ? (
             <button type="button" className="btn btnGhost" onClick={() => setWorks([])}>Очистить выбранные файлы</button>
+          ) : null}
+          {workVideos.length ? (
+            <button type="button" className="btn btnGhost" onClick={() => setWorkVideos([])}>Очистить выбранные видео</button>
           ) : null}
 
           <label className="label consentRow" htmlFor="consent">
@@ -309,6 +336,58 @@ export default function ProfilePage() {
       {(me.role === "admin" || me.role === "moderator") ? (
         <p><Link className="btn btnGhost" href="/admin">Перейти в админ-панель</Link></p>
       ) : null}
+
+      <div className="divider" />
+      <h2>Сторис (24 часа)</h2>
+      <div className="authForm">
+        <FileUploadField
+          id="story-media"
+          label="Новая сторис (изображение/видео)"
+          buttonText="Выбрать файл"
+          accept="image/jpeg,image/png,image/webp,video/mp4,video/webm,video/quicktime"
+          selectedFiles={storyMedia ? [storyMedia] : []}
+          onFilesChange={(files) => setStoryMedia(files[0] ?? null)}
+        />
+        <button type="button" className="btn btnPrimary" onClick={async () => {
+          if (!storyMedia) return;
+          try {
+            await createMyStory(storyMedia);
+            setStoryMedia(null);
+            const myStories = await getMyStories();
+            setStories(Array.isArray(myStories) ? myStories : []);
+            setSuccess("Сторис добавлена");
+            setError("");
+          } catch (err) {
+            setError(readableApiError(err instanceof Error ? err.message : "Не удалось добавить сторис"));
+          }
+        }}>Добавить сторис</button>
+
+        {stories.length ? (
+          <div className="uploadPreviewGrid">
+            {stories.map((story) => (
+              <div key={story.id}>
+                {story.media_type === "video" ? (
+                  <video src={story.media_url} controls playsInline preload="metadata" className="uploadPreviewImg" />
+                ) : (
+                  <img src={story.media_url} alt={`Story ${story.id}`} className="uploadPreviewImg" />
+                )}
+                <button type="button" className="btn btnGhost" onClick={async () => {
+                  try {
+                    await deleteMyStory(story.id);
+                    const myStories = await getMyStories();
+                    setStories(Array.isArray(myStories) ? myStories : []);
+                    setSuccess("Сторис удалена");
+                    setError("");
+                  } catch (err) {
+                    setError(readableApiError(err instanceof Error ? err.message : "Не удалось удалить сторис"));
+                  }
+                }}>Удалить</button>
+              </div>
+            ))}
+          </div>
+        ) : <p className="muted">Активных сторис пока нет.</p>}
+      </div>
+
       <p><Link className="btn btnSecondary" href="/account/ads">Перейти в мои объявления</Link></p>
       <p><Link className="btn btnGhost" href="/account/password">Сменить пароль</Link></p>
     </section>
