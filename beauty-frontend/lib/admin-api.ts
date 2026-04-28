@@ -65,6 +65,14 @@ export type AdminAd = {
   image_url?: string;
 };
 
+export type AdminUserStats = {
+  total_users: number;
+  new_users_7d: number;
+  new_users_30d: number;
+  active_users_7d: number;
+  active_users_30d: number;
+};
+
 const API_URL = "/api";
 
 async function parseResponse<T>(response: Response): Promise<T> {
@@ -95,6 +103,14 @@ export async function getAdminMasters(
     cache: "no-store",
   });
   return parseResponse<AdminMaster[]>(response);
+}
+
+export async function getAdminUserStats() {
+  const response = await fetch(`${API_URL}/admin/stats/users`, {
+    credentials: "include",
+    cache: "no-store",
+  });
+  return parseResponse<AdminUserStats>(response);
 }
 
 export async function moderateUser(

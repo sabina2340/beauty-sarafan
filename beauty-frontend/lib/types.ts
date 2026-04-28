@@ -14,12 +14,27 @@ export type MasterCard = {
   category_name: string;
   category_slug: string;
   verified?: boolean;
+  has_active_stories?: boolean;
   created_at?: string;
   updated_at?: string;
 };
 
 export type MasterDetail = MasterCard & {
-  work_images?: string[];
+  work_images?: {
+    id: number;
+    media_type: "image" | "video";
+    image_url: string;
+    video_url: string;
+    sort_order: number;
+  }[];
+};
+
+export type StoryItem = {
+  id: number;
+  media_type: "image" | "video";
+  media_url: string;
+  created_at: string;
+  expires_at: string;
 };
 
 export type Advertisement = {
