@@ -102,6 +102,43 @@ func (s *Service) UploadImage(fileHeader *multipart.FileHeader, folder string) (
 	return fmt.Sprintf("%s/%s", s.publicURL, key), nil
 }
 
+func (s *Service) DeleteFileByURL(fileURL string) error {
+	fileURL = strings.TrimSpace(fileURL)
+	if fileURL == "" {
+		return fmt.Errorf("file url is required")
+	}
+
+	key, err := s.extractObjectKey(fileURL)
+	if err != nil {
+		return err
+	}
+	return s.deleteObject(key)
+}
+
+func (s *Service) extractObjectKey(fileURL string) (string, error) {
+	parsed, err := url.Parse(fileURL)
+	if err != nil {
+		return "", err
+	}
+
+	publicParsed, err := url.Parse(s.publicURL)
+	if err == nil && parsed.Host == publicParsed.Host {
+		candidate := strings.TrimPrefix(parsed.Path, publicParsed.Path)
+		candidate = strings.TrimPrefix(candidate, "/")
+		if candidate != "" {
+			return candidate, nil
+		}
+	}
+
+	cleanPath := strings.TrimPrefix(parsed.Path, "/")
+	prefix := s.bucket + "/"
+	if strings.HasPrefix(cleanPath, prefix) {
+		return strings.TrimPrefix(cleanPath, prefix), nil
+	}
+
+	return "", fmt.Errorf("failed to resolve storage object key from url")
+}
+
 func (s *Service) putObject(key string, payload []byte, contentType string) error {
 	now := time.Now().UTC()
 	amzDate := now.Format("20060102T150405Z")
@@ -180,6 +217,82 @@ func (s *Service) putObject(key string, payload []byte, contentType string) erro
 	}
 
 	return nil
+}
+
+func (s *Service) deleteObject(key string) error {
+	now := time.Now().UTC()
+	amzDate := now.Format("20060102T150405Z")
+	dateStamp := now.Format("20060102")
+
+	endpointURL, err := url.Parse(s.endpoint)
+	if err != nil {
+		return err
+	}
+
+	canonicalURI := "/" + path.Join(s.bucket, key)
+	payloadHash := hashHex([]byte{})
+
+	headers := map[string]string{
+		"host":                 endpointURL.Host,
+		"x-amz-content-sha256": payloadHash,
+		"x-amz-date":           amzDate,
+	}
+
+	headerKeys := make([]string, 0, len(headers))
+	for k := range headers {
+		headerKeys = append(headerKeys, k)
+	}
+	sort.Strings(headerKeys)
+
+	canonicalHeaders := ""
+	for _, k := range headerKeys {
+		canonicalHeaders += fmt.Sprintf("%s:%s\n", k, strings.TrimSpace(headers[k]))
+	}
+	signedHeaders := strings.Join(headerKeys, ";")
+
+	canonicalRequest := strings.Join([]string{
+		http.MethodDelete,
+		canonicalURI,
+		"",
+		canonicalHeaders,
+		signedHeaders,
+		payloadHash,
+	}, "\n")
+
+	credentialScope := fmt.Sprintf("%s/%s/s3/aws4_request", dateStamp, s.region)
+	stringToSign := strings.Join([]string{
+		"AWS4-HMAC-SHA256",
+		amzDate,
+		credentialScope,
+		hashHex([]byte(canonicalRequest)),
+	}, "\n")
+
+	signingKey := s.signingKey(dateStamp)
+	signature := hmacHex(signingKey, stringToSign)
+	authorization := fmt.Sprintf("AWS4-HMAC-SHA256 Credential=%s/%s, SignedHeaders=%s, Signature=%s", s.accessKey, credentialScope, signedHeaders, signature)
+
+	requestURL := strings.TrimRight(s.endpoint, "/") + canonicalURI
+	req, err := http.NewRequest(http.MethodDelete, requestURL, nil)
+	if err != nil {
+		return err
+	}
+
+	req.Header.Set("X-Amz-Date", amzDate)
+	req.Header.Set("X-Amz-Content-Sha256", payloadHash)
+	req.Header.Set("Authorization", authorization)
+
+	resp, err := s.http.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode == http.StatusNotFound || (resp.StatusCode >= 200 && resp.StatusCode < 300) {
+		return nil
+	}
+
+	body, _ := io.ReadAll(resp.Body)
+	return fmt.Errorf("object storage delete failed: %s: %s", resp.Status, string(body))
 }
 
 func (s *Service) signingKey(dateStamp string) []byte {

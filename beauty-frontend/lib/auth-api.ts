@@ -17,7 +17,21 @@ export type MyMasterProfile = {
   avatar_url: string;
   status: "pending" | "approved" | "rejected";
   rejection_reason?: string | null;
-  work_images?: { image_url: string; sort_order: number }[];
+  work_images?: {
+    id: number;
+    media_type: "image" | "video";
+    image_url: string;
+    video_url: string;
+    sort_order: number;
+  }[];
+};
+
+export type MyStory = {
+  id: number;
+  media_type: "image" | "video";
+  media_url: string;
+  created_at: string;
+  expires_at: string;
 };
 
 const API_URL = "/api";
@@ -116,6 +130,7 @@ export async function upsertMyProfile(payload: {
   social_links: string;
   avatar?: File | null;
   works?: File[];
+  work_videos?: File[];
 }) {
   const formData = new FormData();
   formData.append("category_id", String(payload.category_id));
@@ -132,6 +147,9 @@ export async function upsertMyProfile(payload: {
   for (const file of payload.works || []) {
     formData.append("works[]", file);
   }
+  for (const file of payload.work_videos || []) {
+    formData.append("work_videos[]", file);
+  }
 
   const response = await fetch(`${API_URL}/me/profile`, {
     method: "PUT",
@@ -139,4 +157,32 @@ export async function upsertMyProfile(payload: {
     body: formData,
   });
   return parseJson<MyMasterProfile>(response);
+}
+
+export async function getMyStories() {
+  const response = await fetch(`${API_URL}/me/stories`, {
+    credentials: "include",
+    cache: "no-store",
+  });
+  const payload = await parseJson<{ items: MyStory[] }>(response);
+  return Array.isArray(payload.items) ? payload.items : [];
+}
+
+export async function createMyStory(media: File) {
+  const formData = new FormData();
+  formData.append("media", media);
+  const response = await fetch(`${API_URL}/me/stories`, {
+    method: "POST",
+    credentials: "include",
+    body: formData,
+  });
+  return parseJson<MyStory>(response);
+}
+
+export async function deleteMyStory(id: number) {
+  const response = await fetch(`${API_URL}/me/stories/${id}`, {
+    method: "DELETE",
+    credentials: "include",
+  });
+  return parseJson<{ message: string }>(response);
 }
