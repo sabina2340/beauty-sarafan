@@ -49,17 +49,18 @@ export function MasterStoriesViewer({
       </button>
 
       {opened && current ? (
-        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.85)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
-          <button className="btn btnGhost" style={{ position: "absolute", top: 16, right: 16 }} onClick={() => setOpened(false)}>Закрыть</button>
-          <button className="btn btnGhost" disabled={index === 0} onClick={() => setIndex((prev) => Math.max(0, prev - 1))}>←</button>
-          <div style={{ maxWidth: "90vw", maxHeight: "85vh", margin: "0 12px" }}>
+        <div className="storiesViewerOverlay">
+          <button className="btn btnGhost storiesViewerClose" onClick={() => setOpened(false)}>Закрыть</button>
+          <div className="storiesViewerCounter">{index + 1} / {items.length}</div>
+          <button className="btn btnGhost storiesViewerNav storiesViewerNavPrev" disabled={index === 0} onClick={() => setIndex((prev) => Math.max(0, prev - 1))}>←</button>
+          <div className="storiesViewerMediaWrap">
             {current.media_type === "video" ? (
-              <video src={current.media_url} controls playsInline preload="metadata" style={{ maxWidth: "90vw", maxHeight: "80vh" }} />
+              <video className="storiesViewerMedia" src={current.media_url} controls playsInline preload="metadata" />
             ) : (
-              <img src={current.media_url} alt="story" style={{ maxWidth: "90vw", maxHeight: "80vh", objectFit: "contain" }} />
+              <img className="storiesViewerMedia" src={current.media_url} alt="story" />
             )}
           </div>
-          <button className="btn btnGhost" disabled={index >= items.length - 1} onClick={() => setIndex((prev) => Math.min(items.length - 1, prev + 1))}>→</button>
+          <button className="btn btnGhost storiesViewerNav storiesViewerNavNext" disabled={index >= items.length - 1} onClick={() => setIndex((prev) => Math.min(items.length - 1, prev + 1))}>→</button>
         </div>
       ) : null}
     </>

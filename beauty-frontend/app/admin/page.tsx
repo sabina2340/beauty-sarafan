@@ -379,6 +379,9 @@ export default function AdminPage() {
 
         <article className="card adminCard">
           <h2 className="h3">Пользователи</h2>
+          <button className="btn btnGhost" onClick={loadUserStats}>
+            Показать статистику
+          </button>
           {userStats ? (
             <div className="adminList">
               <div className="adminItem">
@@ -403,7 +406,7 @@ export default function AdminPage() {
               </div>
             </div>
           ) : (
-            <p className="muted">Нажмите кнопку, чтобы загрузить 5 метрик.</p>
+            <p className="muted">Нажмите кнопку выше, чтобы загрузить 5 метрик.</p>
           )}
         </article>
 

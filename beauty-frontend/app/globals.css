@@ -408,6 +408,65 @@ h4 {
   object-fit: cover;
   border-radius: 12px;
 }
+.workGridMedia {
+  width: 100%;
+  max-width: 100%;
+  height: 120px;
+  max-height: min(60vh, 360px);
+  object-fit: cover;
+  border-radius: 12px;
+}
+.storiesViewerOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: rgba(0, 0, 0, 0.88);
+  padding: 16px;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-rows: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+}
+.storiesViewerClose {
+  justify-self: end;
+  grid-column: 3;
+  grid-row: 1;
+}
+.storiesViewerCounter {
+  grid-column: 2;
+  grid-row: 1;
+  justify-self: center;
+  color: #fff;
+  font-weight: 700;
+}
+.storiesViewerNav {
+  min-width: 42px;
+}
+.storiesViewerNavPrev {
+  grid-column: 1;
+  grid-row: 2;
+}
+.storiesViewerNavNext {
+  grid-column: 3;
+  grid-row: 2;
+}
+.storiesViewerMediaWrap {
+  grid-column: 2;
+  grid-row: 2;
+  width: 100%;
+  min-width: 0;
+  height: 100%;
+  display: grid;
+  place-items: center;
+}
+.storiesViewerMedia {
+  width: 100%;
+  max-width: 100%;
+  max-height: calc(100vh - 110px);
+  object-fit: contain;
+  border-radius: 12px;
+}
 
 .authCard {
   max-width: 720px;
@@ -1187,6 +1246,31 @@ h4 {
   }
   .workGrid {
     grid-template-columns: 1fr;
+  }
+  .workGridMedia {
+    height: min(56vw, 260px);
+    max-height: 52vh;
+    object-fit: contain;
+    background: #f5f5f5;
+  }
+  .storiesViewerOverlay {
+    padding: 10px;
+    grid-template-columns: 40px minmax(0, 1fr) 40px;
+    gap: 8px;
+  }
+  .storiesViewerClose {
+    grid-column: 3;
+    padding: 8px 10px;
+  }
+  .storiesViewerCounter {
+    font-size: 13px;
+  }
+  .storiesViewerNav {
+    padding: 8px;
+    min-width: 40px;
+  }
+  .storiesViewerMedia {
+    max-height: calc(100vh - 96px);
   }
   .uploadPreviewGrid {
     grid-template-columns: repeat(2, minmax(0, 1fr));

@@ -82,10 +82,10 @@ export default async function MasterDetailPage({ params, searchParams }: Props) 
               {master.work_images.map((item) => (
                 <div key={item.id}>
                   {(item.media_type || "image") === "video" ? (
-                    <video src={item.video_url} controls playsInline preload="metadata" />
+                    <video className="workGridMedia" src={item.video_url} controls playsInline preload="metadata" />
                   ) : (
                     <a href={item.image_url} target="_blank">
-                      <img src={item.image_url} alt="Пример работы" />
+                      <img className="workGridMedia" src={item.image_url} alt="Пример работы" />
                     </a>
                   )}
                 </div>
