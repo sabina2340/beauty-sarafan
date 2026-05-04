@@ -3,8 +3,10 @@ import { RoleCategoryPicker } from "./role-category-picker";
 import { BrandLogo } from "@/components/BrandLogo";
 import { HotOffersCarousel } from "@/components/ads/HotOffersCarousel";
 import { SarafanFindsInstallHint } from "@/components/ads/SarafanFindsInstallHint";
+import { StoriesFeed } from "@/components/StoriesFeed";
 import { SupportForm } from "@/components/SupportForm";
 import { buildApiUrl } from "@/lib/api-base";
+import type { MasterCard } from "@/lib/types";
 
 type CategoryItem = {
   id: number;
@@ -59,15 +61,24 @@ async function getCategoryGroups() {
   return normalizeCategoryGroups(data);
 }
 
+async function getMastersWithStories(): Promise<MasterCard[]> {
+  const res = await fetch(buildApiUrl("/masters"), { cache: "no-store" });
+  if (!res.ok) return [];
+  const data = await res.json().catch(() => []);
+  return Array.isArray(data) ? (data as MasterCard[]) : [];
+}
+
 export default async function HomePage() {
   const groups = await getCategoryGroups().catch(() => []);
   const safeGroups = Array.isArray(groups) ? groups : [];
+  const masters = await getMastersWithStories().catch(() => []);
 
   return (
     <section className="homePage">
       <div className="homeHero">
         <BrandLogo className="homeLogo" />
       </div>
+      <StoriesFeed masters={masters} />
       <div id="categories" className="homeContent card">
         <RoleCategoryPicker groups={safeGroups} />
       </div>

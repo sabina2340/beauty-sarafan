@@ -4,6 +4,8 @@ import (
 	"beauty-sarafan/internal/database"
 	"beauty-sarafan/internal/models"
 	"beauty-sarafan/internal/storage"
+	"fmt"
+	"mime/multipart"
 	"net/http"
 	"strconv"
 	"strings"
@@ -24,7 +26,10 @@ type ProfileUpsertRequest struct {
 }
 
 type WorkImageResponse struct {
+	ID        uint   `json:"id"`
+	MediaType string `json:"media_type"`
 	ImageURL  string `json:"image_url"`
+	VideoURL  string `json:"video_url"`
 	SortOrder int    `json:"sort_order"`
 }
 
@@ -102,9 +107,36 @@ func loadProfileResponse(profile models.MasterProfile) (ProfileResponse, error) 
 		WorkImages:      make([]WorkImageResponse, 0, len(works)),
 	}
 	for _, item := range works {
-		resp.WorkImages = append(resp.WorkImages, WorkImageResponse{ImageURL: item.ImageURL, SortOrder: item.SortOrder})
+		mediaType := strings.TrimSpace(item.MediaType)
+		if mediaType == "" {
+			mediaType = "image"
+		}
+		resp.WorkImages = append(resp.WorkImages, WorkImageResponse{
+			ID:        item.ID,
+			MediaType: mediaType,
+			ImageURL:  item.ImageURL,
+			VideoURL:  item.VideoURL,
+			SortOrder: item.SortOrder,
+		})
 	}
 	return resp, err
+}
+
+func validateWorkVideo(fileHeader *multipart.FileHeader) error {
+	const maxVideoSize = 50 * 1024 * 1024
+	if fileHeader == nil {
+		return fmt.Errorf("video file is required")
+	}
+	contentType := strings.ToLower(strings.TrimSpace(fileHeader.Header.Get("Content-Type")))
+	switch contentType {
+	case "video/mp4", "video/webm", "video/quicktime":
+	default:
+		return fmt.Errorf("unsupported video format")
+	}
+	if fileHeader.Size > maxVideoSize {
+		return fmt.Errorf("video size must be <= 50MB")
+	}
+	return nil
 }
 
 func GetProfile(c *gin.Context) {
@@ -197,22 +229,62 @@ func PutProfile(c *gin.Context) {
 
 	form, err := c.MultipartForm()
 	if err == nil && form != nil {
-		if files, ok := form.File["works[]"]; ok && len(files) > 0 {
-			if err := database.DB.Where("master_profile_id = ?", profile.ID).Delete(&models.MasterWorkImage{}).Error; err != nil {
-				c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to clear old work images"})
+		images := form.File["works[]"]
+		videos := form.File["work_videos[]"]
+		if len(videos) > 3 {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "max 3 videos allowed"})
+			return
+		}
+		for _, videoHeader := range videos {
+			if validationErr := validateWorkVideo(videoHeader); validationErr != nil {
+				c.JSON(http.StatusBadRequest, gin.H{"error": validationErr.Error()})
 				return
 			}
-			for i, fileHeader := range files {
+		}
+
+		if len(images) > 0 || len(videos) > 0 {
+			if err := database.DB.Where("master_profile_id = ?", profile.ID).Delete(&models.MasterWorkImage{}).Error; err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to clear old works"})
+				return
+			}
+
+			sortOrder := 0
+			for _, fileHeader := range images {
 				imageURL, uploadErr := uploader.UploadImage(fileHeader, "masters/works")
 				if uploadErr != nil {
 					c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to upload work image"})
 					return
 				}
-				item := models.MasterWorkImage{MasterProfileID: profile.ID, ImageURL: imageURL, SortOrder: i}
+				item := models.MasterWorkImage{
+					MasterProfileID: profile.ID,
+					MediaType:       "image",
+					ImageURL:        imageURL,
+					SortOrder:       sortOrder,
+				}
 				if createErr := database.DB.Create(&item).Error; createErr != nil {
 					c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to save work image"})
 					return
 				}
+				sortOrder++
+			}
+
+			for _, videoHeader := range videos {
+				videoURL, uploadErr := uploader.UploadImage(videoHeader, "masters/works")
+				if uploadErr != nil {
+					c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to upload work video"})
+					return
+				}
+				item := models.MasterWorkImage{
+					MasterProfileID: profile.ID,
+					MediaType:       "video",
+					VideoURL:        videoURL,
+					SortOrder:       sortOrder,
+				}
+				if createErr := database.DB.Create(&item).Error; createErr != nil {
+					c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to save work video"})
+					return
+				}
+				sortOrder++
 			}
 		}
 	}

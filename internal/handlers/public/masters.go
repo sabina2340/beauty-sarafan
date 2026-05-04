@@ -27,13 +27,22 @@ type MasterCard struct {
 	CategoryName     string    `json:"category_name"`
 	CategorySlug     string    `json:"category_slug"`
 	Verified         bool      `json:"verified"`
+	HasActiveStories bool      `json:"has_active_stories"`
 	CreatedAt        time.Time `json:"created_at"`
 	UpdatedAt        time.Time `json:"updated_at"`
 }
 
+type MasterWorkItem struct {
+	ID        uint   `json:"id"`
+	MediaType string `json:"media_type"`
+	ImageURL  string `json:"image_url"`
+	VideoURL  string `json:"video_url"`
+	SortOrder int    `json:"sort_order"`
+}
+
 type MasterDetail struct {
 	MasterCard
-	WorkImages []string `json:"work_images"`
+	WorkImages []MasterWorkItem `json:"work_images"`
 }
 
 func shortText(value string, limit int) string {
@@ -88,6 +97,11 @@ func ListMasters(c *gin.Context) {
 	for i := range masters {
 		masters[i].ShortDescription = shortText(masters[i].Description, 120)
 		masters[i].ShortServices = shortText(masters[i].Services, 80)
+		var storiesCount int64
+		_ = database.DB.Model(&models.Story{}).
+			Where("user_id = ? AND expires_at > ?", masters[i].UserID, time.Now().UTC()).
+			Count(&storiesCount).Error
+		masters[i].HasActiveStories = storiesCount > 0
 	}
 
 	c.JSON(http.StatusOK, masters)
@@ -116,6 +130,11 @@ func GetMaster(c *gin.Context) {
 	}
 	master.ShortDescription = shortText(master.Description, 120)
 	master.ShortServices = shortText(master.Services, 80)
+	var storiesCount int64
+	_ = database.DB.Model(&models.Story{}).
+		Where("user_id = ? AND expires_at > ?", master.UserID, time.Now().UTC()).
+		Count(&storiesCount).Error
+	master.HasActiveStories = storiesCount > 0
 
 	var works []models.MasterWorkImage
 	if err := database.DB.Table("master_work_images mwi").
@@ -126,10 +145,20 @@ func GetMaster(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to load work images"})
 		return
 	}
-	workURLs := make([]string, 0, len(works))
+	workItems := make([]MasterWorkItem, 0, len(works))
 	for _, w := range works {
-		workURLs = append(workURLs, w.ImageURL)
+		mediaType := strings.TrimSpace(w.MediaType)
+		if mediaType == "" {
+			mediaType = "image"
+		}
+		workItems = append(workItems, MasterWorkItem{
+			ID:        w.ID,
+			MediaType: mediaType,
+			ImageURL:  w.ImageURL,
+			VideoURL:  w.VideoURL,
+			SortOrder: w.SortOrder,
+		})
 	}
 
-	c.JSON(http.StatusOK, MasterDetail{MasterCard: master, WorkImages: workURLs})
+	c.JSON(http.StatusOK, MasterDetail{MasterCard: master, WorkImages: workItems})
 }

@@ -4,10 +4,13 @@ import (
 	"beauty-sarafan/internal/database"
 	jwtutil "beauty-sarafan/internal/jwt"
 	"beauty-sarafan/internal/models"
+	"log"
 	"net/http"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"golang.org/x/crypto/bcrypt"
+	"gorm.io/gorm"
 )
 
 type LoginRequest struct {
@@ -43,6 +46,16 @@ func Login(c *gin.Context) {
 	if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(req.Password)); err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid login or password"})
 		return
+	}
+
+	now := time.Now().UTC()
+	if err := database.DB.Model(&models.User{}).
+		Where("id = ?", user.ID).
+		Updates(map[string]interface{}{
+			"last_login_at": now,
+			"login_count":   gorm.Expr("login_count + 1"),
+		}).Error; err != nil {
+		log.Printf("login stats update failed for user_id=%d: %v", user.ID, err)
 	}
 
 	token, expiresIn, err := jwtutil.GenerateToken(user)

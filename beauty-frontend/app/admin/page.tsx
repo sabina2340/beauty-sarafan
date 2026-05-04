@@ -29,6 +29,8 @@ import {
   deleteAdminSupportRequest,
   type AdminReview,
   type AdminSupportRequest,
+  type AdminUserStats,
+  getAdminUserStats,
 } from "@/lib/admin-api";
 import { FileUploadField } from "@/components/FileUploadField";
 
@@ -78,6 +80,7 @@ export default function AdminPage() {
   const [reviewCommentById, setReviewCommentById] = useState<
     Record<number, string>
   >({});
+  const [userStats, setUserStats] = useState<AdminUserStats | null>(null);
   const [rejectModalOpen, setRejectModalOpen] = useState(false);
   const [rejectReason, setRejectReason] = useState("");
   const [rejectError, setRejectError] = useState("");
@@ -120,6 +123,16 @@ export default function AdminPage() {
       const safeList = Array.isArray(res) ? res : [];
       setMasters(safeList);
       setOk(`Загружено мастеров: ${safeList.length}`);
+    } catch (e) {
+      setFail(e);
+    }
+  };
+
+  const loadUserStats = async () => {
+    try {
+      const stats = await getAdminUserStats();
+      setUserStats(stats);
+      setOk("Статистика пользователей загружена");
     } catch (e) {
       setFail(e);
     }
@@ -359,6 +372,42 @@ export default function AdminPage() {
           <button className="btn btnSecondary" onClick={checkAccess}>
             Проверить /admin/ping
           </button>
+          <button className="btn btnGhost" onClick={loadUserStats}>
+            Загрузить статистику пользователей
+          </button>
+        </article>
+
+        <article className="card adminCard">
+          <h2 className="h3">Пользователи</h2>
+          <button className="btn btnGhost" onClick={loadUserStats}>
+            Показать статистику
+          </button>
+          {userStats ? (
+            <div className="adminList">
+              <div className="adminItem">
+                <strong>Всего пользователей</strong>
+                <span>{userStats.total_users}</span>
+              </div>
+              <div className="adminItem">
+                <strong>Новых за 7 дней</strong>
+                <span>{userStats.new_users_7d}</span>
+              </div>
+              <div className="adminItem">
+                <strong>Новых за 30 дней</strong>
+                <span>{userStats.new_users_30d}</span>
+              </div>
+              <div className="adminItem">
+                <strong>Активных за 7 дней</strong>
+                <span>{userStats.active_users_7d}</span>
+              </div>
+              <div className="adminItem">
+                <strong>Активных за 30 дней</strong>
+                <span>{userStats.active_users_30d}</span>
+              </div>
+            </div>
+          ) : (
+            <p className="muted">Нажмите кнопку выше, чтобы загрузить 5 метрик.</p>
+          )}
         </article>
 
         <article className="card adminCard">
