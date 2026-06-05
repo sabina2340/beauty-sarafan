@@ -397,6 +397,40 @@ h4 {
   padding: 8px 12px;
   background: #f8fdff;
 }
+.storiesFeed {
+  display: grid;
+  gap: 10px;
+}
+.storiesFeedRow {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(74px, 88px);
+  gap: 10px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+  -webkit-overflow-scrolling: touch;
+}
+.storiesFeedItem {
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+}
+.storiesFeedItem .masterAvatar {
+  width: 64px;
+  height: 64px;
+  border-radius: 999px;
+  border: 2px solid #8dd5ff;
+}
+.storiesFeedName {
+  margin: 0;
+  font-size: 12px;
+  text-align: center;
+  line-height: 1.2;
+  max-width: 84px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 .workGrid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
