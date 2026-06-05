@@ -1,15 +1,17 @@
 package routes
 
 import (
-	"beauty-sarafan/internal/handlers/admin"
-	"beauty-sarafan/internal/handlers/ads"
-	"beauty-sarafan/internal/handlers/auth"
-	"beauty-sarafan/internal/handlers/categories"
-	"beauty-sarafan/internal/handlers/equipment"
-	"beauty-sarafan/internal/handlers/me"
-	publicHandlers "beauty-sarafan/internal/handlers/public"
+	advertisementRoutes "beauty-sarafan/internal/advertisements/routes"
+	authRoutes "beauty-sarafan/internal/auth/routes"
+	commonRoutes "beauty-sarafan/internal/common/routes"
+	mediaRoutes "beauty-sarafan/internal/media/routes"
 	"beauty-sarafan/internal/middleware"
 	"beauty-sarafan/internal/models"
+	moderationRoutes "beauty-sarafan/internal/moderation/routes"
+	profileRoutes "beauty-sarafan/internal/profiles/routes"
+	reviewRoutes "beauty-sarafan/internal/reviews/routes"
+	supportRoutes "beauty-sarafan/internal/support/routes"
+	userRoutes "beauty-sarafan/internal/users/routes"
 
 	"github.com/gin-gonic/gin"
 	swaggerFiles "github.com/swaggo/files"
@@ -22,109 +24,35 @@ func RegisterRoutes(r *gin.Engine, db *gorm.DB) {
 
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
-	authGroup := r.Group("/auth")
-	{
-		authGroup.POST("/register", auth.Register)
-		authGroup.POST("/login", auth.Login)
-		authGroup.POST("/logout", middleware.AuthMiddleware(), auth.Logout)
-		authGroup.GET("/me", auth.Me)
-	}
+	authRoutes.Register(r)
+	commonRoutes.RegisterPublic(r)
+	profileRoutes.RegisterPublic(r)
+	advertisementRoutes.RegisterPublic(r)
+	reviewRoutes.RegisterPublic(r)
+	supportRoutes.RegisterPublic(r)
+	mediaRoutes.RegisterPublic(r)
 
 	meGroup := r.Group("/me")
 	meGroup.Use(middleware.AuthMiddleware())
 	{
-		meGroup.GET("/profile", me.GetProfile)
-		meGroup.PUT("/profile", middleware.RequireRole(models.RoleUser), me.PutProfile)
-		meGroup.PUT("/password", me.PutPassword)
-		meGroup.PUT("/login", me.PutLogin)
-		meGroup.GET("/consents/personal-data", me.GetPersonalDataConsent)
-		meGroup.POST("/consents/personal-data", me.PostPersonalDataConsent)
-
-		meAds := meGroup.Group("/ads")
-		meAds.Use(middleware.RequireRole(models.RoleUser), middleware.EnsureApproved())
-		{
-			meAds.GET("", ads.ListMine)
-			meAds.GET("/:id", ads.GetMine)
-			meAds.PUT("/:id", ads.UpdateMine)
-			meAds.DELETE("/:id", ads.DeleteMine)
-		}
+		profileRoutes.RegisterMe(meGroup)
+		userRoutes.RegisterMe(meGroup)
+		advertisementRoutes.RegisterMe(meGroup)
 	}
 
-	r.GET("/categories", categories.List)
-	r.GET("/category-groups", categories.ListGroups)
-	r.GET("/masters", publicHandlers.ListMasters)
-	r.GET("/masters/:id", publicHandlers.GetMaster)
-	r.GET("/masters/:id/ads", ads.PublicByMaster)
-	r.GET("/masters/:id/reviews", publicHandlers.ListApprovedReviews)
-	r.POST("/masters/:id/reviews", publicHandlers.CreateReview)
-	r.POST("/support-requests", publicHandlers.CreateSupportRequest)
-
-	r.GET("/equipment", equipment.List)
-	r.GET("/equipment/:id", equipment.Get)
-
-	r.GET("/ads", ads.PublicList)
-	r.GET("/hot-offers", ads.HotOffers)
-	r.GET("/ads/active", ads.ActiveAds)
-	r.GET("/tariffs", ads.TariffsList)
-	r.GET("/advertisements/my", middleware.AuthMiddleware(), middleware.RequireRole(models.RoleUser), middleware.EnsureApproved(), ads.ListMine)
-	r.GET("/advertisements/:id", middleware.AuthMiddleware(), middleware.RequireRole(models.RoleUser), middleware.EnsureApproved(), ads.GetMine)
-
-	adsProtected := r.Group("/ads")
-	adsProtected.Use(middleware.AuthMiddleware(), middleware.RequireRole(models.RoleUser), middleware.EnsureApproved())
-	{
-		adsProtected.POST("", ads.Create)
-	}
-
-	advertisementsProtected := r.Group("/advertisements")
-	advertisementsProtected.Use(middleware.AuthMiddleware(), middleware.RequireRole(models.RoleUser), middleware.EnsureApproved())
-	{
-		advertisementsProtected.POST("", ads.CreateWithImages)
-		advertisementsProtected.POST("/:id/select-tariff", ads.SelectTariff)
-		advertisementsProtected.GET("/:id/payment", ads.GetPaymentByAd)
-	}
-
-	paymentsProtected := r.Group("/payments")
-	paymentsProtected.Use(middleware.AuthMiddleware(), middleware.RequireRole(models.RoleUser), middleware.EnsureApproved())
-	{
-		paymentsProtected.POST("/:id/mark-paid", ads.MarkPaymentPaid)
-	}
+	advertisementRoutes.RegisterProtected(r)
 
 	adminGroup := r.Group("/admin")
 	adminGroup.Use(middleware.AuthMiddleware(), middleware.RequireAnyRole(models.RoleAdmin, models.RoleModerator))
 	{
-		adminGroup.GET("/ping", admin.Ping)
-		adminGroup.GET("/masters", admin.ListMasters)
-		adminGroup.PATCH("/users/:id/moderate", admin.ModerateUser)
-		adminGroup.PATCH("/users/:id/approve", admin.ApproveUser)
-		adminGroup.PATCH("/users/:id/reject", admin.RejectUser)
-		adminGroup.PATCH("/masters/:id/approve", admin.ApproveUser)
-		adminGroup.PATCH("/masters/:id/reject", admin.RejectUser)
-
-		adminGroup.POST("/categories", categories.Create)
-
-		adminGroup.GET("/ads", ads.AdminList)
-		adminGroup.GET("/ads/moderation", ads.AdminList)
-		adminGroup.PUT("/ads/:id", ads.AdminUpdate)
-		adminGroup.PATCH("/ads/:id/approve", ads.AdminApprove)
-		adminGroup.PATCH("/ads/:id/reject", ads.AdminReject)
-		adminGroup.GET("/payments/pending", ads.AdminPendingPayments)
-		adminGroup.POST("/payments/:id/confirm", ads.AdminConfirmPayment)
-		adminGroup.POST("/payments/:id/reject", ads.AdminRejectPayment)
-
-		adminGroup.GET("/equipment", admin.ListEquipment)
-		adminGroup.POST("/equipment", admin.CreateEquipment)
-		adminGroup.PUT("/equipment/:id", admin.UpdateEquipment)
-		adminGroup.DELETE("/equipment/:id", admin.DeleteEquipment)
-
-		adminGroup.GET("/reviews", admin.ListReviews)
-		adminGroup.GET("/reviews/:id", admin.GetReview)
-		adminGroup.PATCH("/reviews/:id/moderate", admin.ModerateReview)
-		adminGroup.DELETE("/reviews/:id", admin.DeleteReview)
-
-		adminGroup.GET("/support-requests", admin.ListSupportRequests)
-		adminGroup.GET("/support-requests/:id", admin.GetSupportRequest)
-		adminGroup.PATCH("/support-requests/:id", admin.UpdateSupportRequest)
-		adminGroup.DELETE("/support-requests/:id", admin.DeleteSupportRequest)
+		moderationRoutes.RegisterAdmin(adminGroup)
+		profileRoutes.RegisterAdmin(adminGroup)
+		userRoutes.RegisterAdmin(adminGroup)
+		commonRoutes.RegisterAdmin(adminGroup)
+		advertisementRoutes.RegisterAdmin(adminGroup)
+		mediaRoutes.RegisterAdmin(adminGroup)
+		reviewRoutes.RegisterAdmin(adminGroup)
+		supportRoutes.RegisterAdmin(adminGroup)
 	}
 
 	r.GET("/", func(c *gin.Context) {
