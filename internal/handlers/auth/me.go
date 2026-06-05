@@ -3,7 +3,6 @@ package auth
 import (
 	jwtutil "beauty-sarafan/internal/jwt"
 	"net/http"
-	"strings"
 
 	"github.com/gin-gonic/gin"
 )
@@ -22,17 +21,9 @@ type MeResponse struct {
 // @Success 200 {object} MeResponse
 // @Router /auth/me [get]
 func Me(c *gin.Context) {
-	token, _ := c.Cookie("access_token")
+	token, _ := c.Cookie(accessTokenCookieName)
 	if token == "" {
-		header := c.GetHeader("Authorization")
-		parts := strings.SplitN(header, " ", 2)
-		if len(parts) == 2 && strings.EqualFold(parts[0], "Bearer") {
-			token = parts[1]
-		}
-	}
-
-	if token == "" {
-		c.JSON(http.StatusOK, nil)
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "missing access token"})
 		return
 	}
 

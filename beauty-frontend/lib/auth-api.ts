@@ -22,6 +22,17 @@ export type MyMasterProfile = {
 
 const API_URL = "/api";
 
+const LEGACY_AUTH_STORAGE_KEYS = ["token", "userid", "userId"] as const;
+
+function cleanupLegacyAuthStorage() {
+  if (typeof window === "undefined") return;
+
+  for (const key of LEGACY_AUTH_STORAGE_KEYS) {
+    window.localStorage.removeItem(key);
+    window.sessionStorage.removeItem(key);
+  }
+}
+
 async function parseJson<T>(response: Response): Promise<T> {
   if (!response.ok) {
     const payload = await response.json().catch(() => ({ error: "Request failed" }));
@@ -58,6 +69,7 @@ export async function logout() {
     method: "POST",
     credentials: "include",
   });
+  cleanupLegacyAuthStorage();
   return parseJson<{ message: string }>(response);
 }
 
