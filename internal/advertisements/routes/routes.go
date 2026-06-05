@@ -13,6 +13,7 @@ func RegisterPublic(r *gin.Engine) {
 	r.GET("/ads", handlers.PublicList)
 	r.GET("/hot-offers", handlers.HotOffers)
 	r.GET("/ads/active", handlers.ActiveAds)
+	r.GET("/tariffs", handlers.TariffsList)
 }
 
 func RegisterMe(meGroup *gin.RouterGroup) {
@@ -41,6 +42,13 @@ func RegisterProtected(r *gin.Engine) {
 	{
 		advertisementsProtected.POST("", handlers.CreateWithImages)
 		advertisementsProtected.POST("/:id/select-tariff", handlers.SelectTariff)
+		advertisementsProtected.GET("/:id/payment", handlers.GetPaymentByAd)
+	}
+
+	paymentsProtected := r.Group("/payments")
+	paymentsProtected.Use(middleware.AuthMiddleware(), middleware.RequireRole(models.RoleUser), middleware.EnsureApproved())
+	{
+		paymentsProtected.POST("/:id/mark-paid", handlers.MarkPaymentPaid)
 	}
 }
 
@@ -50,4 +58,7 @@ func RegisterAdmin(adminGroup *gin.RouterGroup) {
 	adminGroup.PUT("/ads/:id", handlers.AdminUpdate)
 	adminGroup.PATCH("/ads/:id/approve", handlers.AdminApprove)
 	adminGroup.PATCH("/ads/:id/reject", handlers.AdminReject)
+	adminGroup.GET("/payments/pending", handlers.AdminPendingPayments)
+	adminGroup.POST("/payments/:id/confirm", handlers.AdminConfirmPayment)
+	adminGroup.POST("/payments/:id/reject", handlers.AdminRejectPayment)
 }

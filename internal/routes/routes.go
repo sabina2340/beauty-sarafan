@@ -8,11 +8,9 @@ import (
 	"beauty-sarafan/internal/middleware"
 	"beauty-sarafan/internal/models"
 	moderationRoutes "beauty-sarafan/internal/moderation/routes"
-	paymentRoutes "beauty-sarafan/internal/payments/routes"
 	profileRoutes "beauty-sarafan/internal/profiles/routes"
 	reviewRoutes "beauty-sarafan/internal/reviews/routes"
 	supportRoutes "beauty-sarafan/internal/support/routes"
-	tariffRoutes "beauty-sarafan/internal/tariffs/routes"
 	userRoutes "beauty-sarafan/internal/users/routes"
 
 	"github.com/gin-gonic/gin"
@@ -33,7 +31,6 @@ func RegisterRoutes(r *gin.Engine, db *gorm.DB) {
 	reviewRoutes.RegisterPublic(r)
 	supportRoutes.RegisterPublic(r)
 	mediaRoutes.RegisterPublic(r)
-	tariffRoutes.RegisterPublic(r)
 
 	meGroup := r.Group("/me")
 	meGroup.Use(middleware.AuthMiddleware())
@@ -44,7 +41,6 @@ func RegisterRoutes(r *gin.Engine, db *gorm.DB) {
 	}
 
 	advertisementRoutes.RegisterProtected(r)
-	paymentRoutes.RegisterProtected(r)
 
 	adminGroup := r.Group("/admin")
 	adminGroup.Use(middleware.AuthMiddleware(), middleware.RequireAnyRole(models.RoleAdmin, models.RoleModerator))
@@ -54,7 +50,6 @@ func RegisterRoutes(r *gin.Engine, db *gorm.DB) {
 		userRoutes.RegisterAdmin(adminGroup)
 		commonRoutes.RegisterAdmin(adminGroup)
 		advertisementRoutes.RegisterAdmin(adminGroup)
-		paymentRoutes.RegisterAdmin(adminGroup)
 		mediaRoutes.RegisterAdmin(adminGroup)
 		reviewRoutes.RegisterAdmin(adminGroup)
 		supportRoutes.RegisterAdmin(adminGroup)
